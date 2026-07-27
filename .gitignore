@@ -1,0 +1,28 @@
+# Dependencies, reinstalled with: cd presentation && npm install
+presentation/node_modules/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Intermediate cache for the slow backtest stage. Regenerated automatically by
+# models_backtest.py; keyed on the input data and configuration.
+data/processed/members_cache.csv
+data/processed/members_cache.key
+data/processed/_members_state.pkl
+
+# Generated equation images for the personal study guide
+report/_equations/
+
+# Personal study notes, not part of the submission
+report/Complete_Project_Guide.pdf
+
+# Derived packaging. Rebuild with: python code/make_submission.py
+submission/
+submission.zip
+
+# LibreOffice and OS scratch
+.~lock.*#
+*.tmp
+.DS_Store
+Thumbs.db
