@@ -8,16 +8,18 @@
 ## Blocking, only Aakash can do these
 
 - [ ] **Confirm both team members are registered** via the poster link. Without this, nothing else matters, the work is ineligible.
-- [ ] **Obtain the submission form** referred to in the rules. It is not in the folder; get it from SES or whoever ran the info session.
+- [x] ~~Obtain the submission form.~~ Done. **It asks for a GitHub link.**
 - [ ] **Complete the submission form** with team name *Spurious Decision* and both members.
-- [ ] **Send the email** before 23:59 Monday: attach the zipped `submission/` folder and the completed form. Send it early, do not test the deadline.
+- [ ] **Create the GitHub repo and push.** Follow `admin/Push_To_GitHub.md`, about five minutes. The repo must be **public**.
+- [ ] **Paste the repo URL into the submission form** and check the link opens in a private/incognito window, which proves it is really public.
+- [ ] **Send the form** before 23:59 Monday. Send it early, do not test the deadline.
 
 ## Before sending
 
 - [ ] Run `python code/run_all.py` one final time (confirms everything still reproduces).
 - [ ] Run `python code/make_submission.py` (rebuilds `submission/` from the current results).
 - [ ] Open `submission/00_README.txt` and check the headline numbers read 0.5600 vs 0.5624.
-- [ ] Zip the `submission/` folder.
+- [ ] Zip `submission/` only if the form also asks for attachments. The GitHub repo already contains everything.
 
 ## Before presenting (Tuesday)
 
