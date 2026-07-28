@@ -204,7 +204,7 @@ Heyden, entered as team *Spurious Decision*. The entry did not place. I rebuilt
 the repository afterwards as a portfolio piece and added the statistical testing,
 power analysis, tests and documentation at that point.
 
-Anthropic's Claude was used as a coding and research assistant for pipeline code,
+Anthropic's Claude was used as a coding assistant for pipeline code,
 literature search and typesetting. The modelling decisions, validation design and
 final specification are mine. OLS, ridge and weighted averages were chosen partly
 so that every component can be derived by hand.
