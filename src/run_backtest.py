@@ -1,5 +1,5 @@
 """
-models_backtest.py — Walk-forward out-of-sample backtest for USDZAR, judged
+run_backtest.py — Walk-forward out-of-sample backtest for USDZAR, judged
 window 2021-01-01 .. 2025-12-31.
 
 Honesty protocol

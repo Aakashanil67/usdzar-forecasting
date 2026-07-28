@@ -1,5 +1,5 @@
 """
-make_report.py — Generates report/Project_Report.pdf from the CURRENT pipeline
+make_report.py — Generates reports/technical_report.pdf from the CURRENT pipeline
 outputs (metrics.json, validation_metrics.json, figures/). Re-run after any
 change; the report always reflects the latest numbers. Team name/members are
 read from report/team.txt if present (line 1 = team name, then members).
@@ -16,7 +16,7 @@ from reportlab.platypus import (Image, PageBreak, Paragraph, SimpleDocTemplate,
                                 Spacer, Table, TableStyle)
 
 BASE = Path(__file__).resolve().parents[1]
-PROC, FIG, REP = BASE / "data" / "processed", BASE / "figures", BASE / "report"
+PROC, FIG, REP = BASE / "data" / "processed", BASE / "figures", BASE / "reports"
 REP.mkdir(exist_ok=True)
 
 MET = json.load(open(PROC / "metrics.json"))
@@ -93,7 +93,7 @@ def results_table():
 
 
 def main():
-    doc = SimpleDocTemplate(str(REP / "Project_Report.pdf"), pagesize=A4,
+    doc = SimpleDocTemplate(str(REP / "technical_report.pdf"), pagesize=A4,
                             leftMargin=2 * cm, rightMargin=2 * cm,
                             topMargin=1.8 * cm, bottomMargin=1.8 * cm,
                             title="USDZAR 1-Month-Ahead Forecasting",
@@ -193,7 +193,7 @@ def main():
         "14 173 daily observations from 1970-01-02. Because a live API pull is "
         "easier for anyone reproducing the work, the pipeline also downloads "
         "the same series from the SARB Web API under code EXCX135D. "
-        "<b>econdata_verify.py confirms the two are numerically identical: "
+        "<b>verify_provenance.py confirms the two are numerically identical: "
         "9 141 overlapping observations, maximum absolute difference 0.000000, "
         "zero mismatches</b>, with an exact match across the 1 290 observations "
         "covering the forecast window. Rerunning the entire backtest off each "
@@ -224,10 +224,10 @@ def main():
         "instantly and never revised. The trade buys us a guarantee against "
         "look-ahead bias that no amount of careful coding could otherwise "
         "provide, and we would make it again."))
-    E.append(img("fig4_series_panel.png", 14.5))
+    E.append(img("input_series.png", 14.5))
     E.append(para("Figure 3.1. Every series used in the model, sampled as of "
                   "each Friday.", SMALL))
-    E.append(img("table_summary_stats.png", 15.5))
+    E.append(img("summary_statistics.png", 15.5))
     E.append(para("Table 3.1. Observation counts split between the estimation "
                   "era before 2021 and the forecast era from 2021 to 2025, with "
                   "descriptive statistics.", SMALL))
@@ -310,15 +310,15 @@ def main():
         f"{fmt(MET['_targets_within_window']['AR1_log'])} for the AR(1) and "
         f"{fmt(MET['_targets_within_window']['RW'])} for the random walk, and "
         f"leads every model we ran.", SMALL))
-    E.append(img("fig1_rmse_bars.png", 14.5))
+    E.append(img("rmse_by_model.png", 14.5))
     E.append(para("Figure 5.1. RMSE by model with values printed on the bars. "
                   "The axis starts at 0.50 so that differences of this size are "
                   "visible.", SMALL))
-    E.append(img("fig1b_rel_improvement.png", 14.0))
+    E.append(img("relative_improvement.png", 14.0))
     E.append(para("Figure 5.2. Improvement over the AR(1) baseline, per cent.",
                   SMALL))
     E.append(PageBreak())
-    E.append(img("fig2_cum_se_diff.png", 15.0))
+    E.append(img("cumulative_error_difference.png", 15.0))
     E.append(para(
         "Figure 5.3. Cumulative squared-error difference against the AR(1). The "
         "line moves either side of zero through 2021 and ends that year barely "
@@ -327,17 +327,17 @@ def main():
         "1.19 by the end of 2023 and peaking at 1.29. Some of that is given "
         "back over 2024 and 2025, and the series finishes at 0.69. We show the "
         "give-back rather than crop the chart at its peak.", SMALL))
-    E.append(img("fig6_yearly_rmse.png", 14.5))
+    E.append(img("rmse_by_year.png", 14.5))
     E.append(para(
         "Figure 5.4. RMSE by year. We win four years of five. The 2025 loss is "
         "informative: the rand strengthened that year and moved back toward "
         "the baseline's long-run mean, so its built-in bias finally paid. That "
         "regime dependence is the argument for combining models rather than "
         "committing to one.", SMALL))
-    E.append(img("fig3_forecasts.png", 15.0))
+    E.append(img("forecasts_vs_actual.png", 15.0))
     E.append(para("Figure 5.5. Forecasts plotted at their target dates against "
                   "the realised series.", SMALL))
-    E.append(img("fig5_weights.png", 15.0))
+    E.append(img("combination_weights.png", 15.0))
     E.append(para(
         "Figure 5.6. Combination weights through time, computed from resolved "
         "errors only. The random walk's role as anchor was learned from "
@@ -468,7 +468,7 @@ def main():
         E.append(para("- " + r, SMALL))
 
     doc.build(E)
-    print("report written:", REP / "Project_Report.pdf")
+    print("report written:", REP / "technical_report.pdf")
 
 
 if __name__ == "__main__":

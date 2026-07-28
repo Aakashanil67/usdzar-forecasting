@@ -46,8 +46,8 @@ def asof_weekly(daily: pd.DataFrame, fridays: pd.Series, col: str,
 
 def load_target() -> pd.DataFrame:
     """USDZAR (EXCX135). Primary source: the official EconData export
-    (data/raw/econdata_excx135_clean.csv, produced by econdata_verify.py).
-    Fallback: the SARB Web API pull, which econdata_verify.py has confirmed is
+    (data/raw/econdata_excx135_clean.csv, produced by verify_provenance.py).
+    Fallback: the SARB Web API pull, which verify_provenance.py has confirmed is
     numerically identical over all 9 141 overlapping observations."""
     f = RAW / "econdata_excx135_clean.csv"
     if f.exists():
@@ -101,11 +101,8 @@ def main() -> None:
 
     w.to_csv(PROC / "weekly.csv", index=False)
 
-    # ---- summary statistics (report + deck) ----
     feats = ["spot", "carry_diff", "ret4_gold", "ret4_plat", "ret4_brent",
              "ret4_usd", "vix_z", "ma_gap", "ret4_spot"]
-    stats = w[feats].describe().T.round(4)
-    stats.to_csv(PROC / "summary_stats.csv")
     print(w.tail(3)[["friday", "spot", "target_date", "realized"]])
     print(f"rows: {len(w)}  complete-feature rows: "
           f"{w.dropna(subset=feats + ['y']).shape[0]}")

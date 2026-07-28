@@ -1,0 +1,122 @@
+{
+  "dm_statistic_matrix": {
+    "AR1_log": {
+      "AR1_log": 0.0,
+      "RW": 1.231,
+      "CARRY": 0.295,
+      "RIDGE": 0.967,
+      "GBM": -2.031,
+      "COMBO": 0.724
+    },
+    "RW": {
+      "AR1_log": -1.231,
+      "RW": 0.0,
+      "CARRY": -0.159,
+      "RIDGE": -1.898,
+      "GBM": -2.105,
+      "COMBO": -0.02
+    },
+    "CARRY": {
+      "AR1_log": -0.295,
+      "RW": 0.159,
+      "CARRY": 0.0,
+      "RIDGE": 0.04,
+      "GBM": -1.997,
+      "COMBO": 0.23
+    },
+    "RIDGE": {
+      "AR1_log": -0.967,
+      "RW": 1.898,
+      "CARRY": -0.04,
+      "RIDGE": 0.0,
+      "GBM": -2.075,
+      "COMBO": 0.339
+    },
+    "GBM": {
+      "AR1_log": 2.031,
+      "RW": 2.105,
+      "CARRY": 1.997,
+      "RIDGE": 2.075,
+      "GBM": 0.0,
+      "COMBO": 2.08
+    },
+    "COMBO": {
+      "AR1_log": -0.724,
+      "RW": 0.02,
+      "CARRY": -0.23,
+      "RIDGE": -0.339,
+      "GBM": -2.08,
+      "COMBO": 0.0
+    }
+  },
+  "dm_pvalue_matrix": {
+    "AR1_log": {
+      "AR1_log": 1.0,
+      "RW": 0.2181,
+      "CARRY": 0.7678,
+      "RIDGE": 0.3335,
+      "GBM": 0.0423,
+      "COMBO": 0.469
+    },
+    "RW": {
+      "AR1_log": 0.2181,
+      "RW": 1.0,
+      "CARRY": 0.8738,
+      "RIDGE": 0.0577,
+      "GBM": 0.0353,
+      "COMBO": 0.9844
+    },
+    "CARRY": {
+      "AR1_log": 0.7678,
+      "RW": 0.8738,
+      "CARRY": 1.0,
+      "RIDGE": 0.9681,
+      "GBM": 0.0459,
+      "COMBO": 0.8184
+    },
+    "RIDGE": {
+      "AR1_log": 0.3335,
+      "RW": 0.0577,
+      "CARRY": 0.9681,
+      "RIDGE": 1.0,
+      "GBM": 0.038,
+      "COMBO": 0.7348
+    },
+    "GBM": {
+      "AR1_log": 0.0423,
+      "RW": 0.0353,
+      "CARRY": 0.0459,
+      "RIDGE": 0.038,
+      "GBM": 1.0,
+      "COMBO": 0.0375
+    },
+    "COMBO": {
+      "AR1_log": 0.469,
+      "RW": 0.9844,
+      "CARRY": 0.8184,
+      "RIDGE": 0.7348,
+      "GBM": 0.0375,
+      "COMBO": 1.0
+    }
+  },
+  "dm_note": "Row model against column model, squared-error loss, Newey-West variance at lag 3. Negative statistic means the ROW model is more accurate. Two-sided p-values.",
+  "power_analysis": {
+    "n_origins": 261,
+    "mean_loss_differential": -0.0026530299029753957,
+    "newey_west_sd_per_obs": 0.059184956382910485,
+    "dm_statistic": -0.724,
+    "dm_pvalue": 0.469,
+    "observed_rmse_improvement_pct": 0.42,
+    "origins_needed_for_80pct_power": 3906,
+    "years_of_weekly_origins_needed": 75.1,
+    "minimum_detectable_rmse_improvement_pct": 1.64,
+    "interpretation": "With 261 overlapping origins, the smallest RMSE improvement detectable at 5% with 80% power is about 1.64%. We observed 0.42%, which is roughly 4x too small to clear that bar. Detecting an effect of the size we found would need on the order of 75 years of weekly forecasts. A non-significant result here is the expected outcome, not evidence the model does nothing."
+  },
+  "rolling": {
+    "window_weeks": 52,
+    "n_complete_windows": 210,
+    "share_of_windows_ahead_of_benchmark": 0.624,
+    "best_window_ratio": 0.9801,
+    "worst_window_ratio": 1.0239
+  }
+}

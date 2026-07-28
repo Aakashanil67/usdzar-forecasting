@@ -11,7 +11,7 @@ Sources (all free, no API key):
 The USDZAR series EXCX135 is published by SARB and distributed via EconData.
 The SARB Web API serves the *identical* series (code EXCX135D). For the official
 submission we additionally pull EXCX135 via EconData and verify equality
-(see econdata_verify.py).
+(see verify_provenance.py).
 
 Every file is written to data/raw/<name>.csv with columns: date,value
 """

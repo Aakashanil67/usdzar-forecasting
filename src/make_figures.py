@@ -2,13 +2,13 @@
 make_figures.py — All charts and tables for the report and deck.
 Every figure is saved to figures/ at 200 dpi with labelled axes and titles.
 
-  fig1_rmse_bars.png      : RMSE per model, value printed on every bar (rubric)
-  fig2_cum_se_diff.png    : cumulative squared-error difference AR(1) - COMBO
+  rmse_by_model.png      : RMSE per model, value printed on every bar (rubric)
+  cumulative_error_difference.png    : cumulative squared-error difference AR(1) - COMBO
                             (rising line = COMBO winning), plus vs RW
-  fig3_forecasts.png      : realized USDZAR at target dates vs COMBO and AR(1)
-  fig4_series_panel.png   : every input series used by the model (rubric)
-  fig5_weights.png        : combination weights through time
-  fig6_yearly_rmse.png    : per-year RMSE bars, model vs AR(1) vs RW
+  forecasts_vs_actual.png      : realized USDZAR at target dates vs COMBO and AR(1)
+  input_series.png   : every input series used by the model (rubric)
+  combination_weights.png        : combination weights through time
+  rmse_by_year.png    : per-year RMSE bars, model vs AR(1) vs RW
   table_summary_stats.csv/png : observation counts + descriptive stats
 """
 import json
@@ -52,7 +52,7 @@ def main() -> None:
                  f"2021-01-01 to 2025-12-31  (n = {met['COMBO']['n']} forecasts)")
     ax.set_ylim(0, max(rmses) * 1.15)
     plt.xticks(rotation=12)
-    fig.tight_layout(); fig.savefig(FIG / "fig1_rmse_bars.png"); plt.close(fig)
+    fig.tight_layout(); fig.savefig(FIG / "rmse_by_model.png"); plt.close(fig)
 
     # ---- fig 1b: % improvement vs AR(1) -------------------------------
     fig, ax = plt.subplots(figsize=(7.2, 3.2))
@@ -69,7 +69,7 @@ def main() -> None:
     ax.set_xlabel("RMSE improvement vs AR(1) baseline (%)  —  positive = better")
     ax.set_title("Relative accuracy vs the AR(1) baseline (judged window)")
     ax.set_xlim(min(imp) * 1.35, max(imp) * 1.8)
-    fig.tight_layout(); fig.savefig(FIG / "fig1b_rel_improvement.png")
+    fig.tight_layout(); fig.savefig(FIG / "relative_improvement.png")
     plt.close(fig)
 
     # ---- fig 2: cumulative squared-error difference -------------------
@@ -83,7 +83,7 @@ def main() -> None:
     ax.axhline(0, color="black", lw=0.8)
     ax.set_title("Cumulative squared-error difference (positive = combination ahead)")
     ax.set_ylabel("cum. SE difference"); ax.legend()
-    fig.tight_layout(); fig.savefig(FIG / "fig2_cum_se_diff.png"); plt.close(fig)
+    fig.tight_layout(); fig.savefig(FIG / "cumulative_error_difference.png"); plt.close(fig)
 
     # ---- fig 3: forecasts vs realized ---------------------------------
     fig, ax = plt.subplots(figsize=(7.2, 3.8))
@@ -95,7 +95,7 @@ def main() -> None:
             alpha=0.7, label="AR(1) forecast")
     ax.set_title("1-month-ahead forecasts vs realized values at each target date")
     ax.set_ylabel("Rand per USD"); ax.legend()
-    fig.tight_layout(); fig.savefig(FIG / "fig3_forecasts.png"); plt.close(fig)
+    fig.tight_layout(); fig.savefig(FIG / "forecasts_vs_actual.png"); plt.close(fig)
 
     # ---- fig 4: input series panel ------------------------------------
     w = pd.read_csv(PROC / "weekly.csv", parse_dates=["friday"]).set_index("friday")
@@ -108,7 +108,7 @@ def main() -> None:
         ax.plot(w.index, w[col], lw=0.7, color="#1f5fa8")
         ax.set_title(title, fontsize=8.5)
     fig.suptitle("Series used in the model (weekly, as-of each Friday)", y=0.995)
-    fig.tight_layout(); fig.savefig(FIG / "fig4_series_panel.png"); plt.close(fig)
+    fig.tight_layout(); fig.savefig(FIG / "input_series.png"); plt.close(fig)
 
     # ---- fig 5: combination weights -----------------------------------
     wl = pd.read_csv(PROC / "combo_weights.csv", index_col=0, parse_dates=True)
@@ -120,7 +120,7 @@ def main() -> None:
                  alpha=0.85)
     ax.set_ylim(0, 1); ax.legend(loc="lower left", ncol=3)
     ax.set_title("Combination weights over time (inverse discounted-MSE, resolved errors only)")
-    fig.tight_layout(); fig.savefig(FIG / "fig5_weights.png"); plt.close(fig)
+    fig.tight_layout(); fig.savefig(FIG / "combination_weights.png"); plt.close(fig)
 
     # ---- fig 6: per-year RMSE -----------------------------------------
     yearly = met["_yearly"]
@@ -137,7 +137,7 @@ def main() -> None:
     ax.set_xticks(range(len(yrs))); ax.set_xticklabels(yrs)
     ax.set_ylabel("RMSE"); ax.legend()
     ax.set_title("RMSE by calendar year of forecast origin")
-    fig.tight_layout(); fig.savefig(FIG / "fig6_yearly_rmse.png"); plt.close(fig)
+    fig.tight_layout(); fig.savefig(FIG / "rmse_by_year.png"); plt.close(fig)
 
     # ---- summary statistics table -------------------------------------
     est = w[w.index < "2021-01-01"]; fc = w[w.index >= "2021-01-01"]
@@ -163,7 +163,7 @@ def main() -> None:
                  colLabels=tbl.columns, loc="center", cellLoc="center")
     t.auto_set_font_size(False); t.set_fontsize(7); t.scale(1, 1.25)
     ax.set_title("Summary statistics — weekly (Friday) series", fontsize=10)
-    fig.tight_layout(); fig.savefig(FIG / "table_summary_stats.png")
+    fig.tight_layout(); fig.savefig(FIG / "summary_statistics.png")
     plt.close(fig)
     print("figures written:", sorted(p.name for p in FIG.iterdir()))
 

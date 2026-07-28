@@ -1,5 +1,5 @@
 """
-make_slide_figures.py — Presentation-resolution versions of the two exhibits
+make_presentation_figures.py — Presentation-resolution versions of the two exhibits
 used on the results slides.
 
 The report figures are built for print: small fonts, no call-outs. Academic
@@ -7,7 +7,7 @@ presentation practice asks for figures rebuilt at screen resolution with axis
 labels of at least 16pt and the key finding annotated directly on the chart, so
 the slide communicates without narration. Written to figures/slides/.
 
-Run:  python code/make_slide_figures.py
+Run:  python src/make_presentation_figures.py
 """
 import json
 from pathlib import Path
@@ -20,7 +20,7 @@ import pandas as pd
 
 BASE = Path(__file__).resolve().parents[1]
 PROC = BASE / "data" / "processed"
-OUT = BASE / "figures" / "slides"
+OUT = BASE / "figures" / "presentation"
 OUT.mkdir(parents=True, exist_ok=True)
 
 MET = json.load(open(PROC / "metrics.json"))
@@ -87,7 +87,7 @@ def rmse_bars():
                 (0, -0.185), xycoords="axes fraction", fontsize=12.5,
                 color=MUTED, style="italic")
     fig.tight_layout()
-    fig.savefig(OUT / "slide_rmse.png", dpi=220, facecolor="white")
+    fig.savefig(OUT / "rmse.png", dpi=220, facecolor="white")
     plt.close(fig)
 
 
@@ -128,7 +128,7 @@ def cumulative():
     ax.spines[["top", "right"]].set_visible(False)
     ax.set_axisbelow(True)
     fig.tight_layout()
-    fig.savefig(OUT / "slide_cumse.png", dpi=220, facecolor="white")
+    fig.savefig(OUT / "cumse.png", dpi=220, facecolor="white")
     plt.close(fig)
 
 
@@ -163,7 +163,7 @@ def yearly():
     ax.spines[["top", "right"]].set_visible(False)
     ax.set_axisbelow(True)
     fig.tight_layout()
-    fig.savefig(OUT / "slide_yearly.png", dpi=220, facecolor="white")
+    fig.savefig(OUT / "yearly.png", dpi=220, facecolor="white")
     plt.close(fig)
 
 

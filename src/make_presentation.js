@@ -1,4 +1,4 @@
-// build_deck.js — SES x Codera hackathon deck.
+// make_presentation.js — SES x Codera hackathon deck.
 //
 // Structure follows academic presentation discipline (action titles, one
 // exhibit per results slide, annotated findings, references, conclusions last)
@@ -7,12 +7,12 @@
 // econometricians, so the deck aims to look confident rather than decorated.
 //
 // 6 presented slides (~4:40) + references + 7 appendix slides.
-// Run: node build_deck.js
+// Run: node make_presentation.js
 const pptxgen = require("pptxgenjs");
 const path = require("path");
 
 const FIG = path.join(__dirname, "..", "figures");
-const SFIG = path.join(FIG, "slides");
+const SFIG = path.join(FIG, "presentation");
 const MET = require(path.join(__dirname, "..", "data", "processed", "metrics.json"));
 
 // three content colours plus neutrals
@@ -168,7 +168,7 @@ function sectionHead(s, txt, x, y, w) {
 /* ================= 4. RESULT 1: the mechanism ======================== */
 {
   const s = slide("The AR(1)'s implied long-run mean sat below the market at all 261 origins");
-  s.addImage({ path: path.join(SFIG, "slide_cumse.png"), x: M, y: 1.5,
+  s.addImage({ path: path.join(SFIG, "cumse.png"), x: M, y: 1.5,
     w: 7.6, h: 4.3 });
 
   sectionHead(s, "What to take away", 8.5, 1.55, 4.3);
@@ -186,14 +186,14 @@ function sectionHead(s, txt, x, y, w) {
     { text: "average gap, below spot at every origin", options: { fontSize: 14, color: "7A5200" } },
   ], { x: 8.65, y: 5.28, w: 4.0, h: 1.1, fontFace: F, align: "center",
     valign: "middle", margin: 0 });
-  cite(s, "Own calculation. AR(1) refitted at each of the 261 origins; reproducible via code/verify_charts.py in the submission.");
+  cite(s, "Own calculation. AR(1) refitted at each of the 261 origins; reproducible via src/validate_results.py in the submission.");
   s.addNotes("[2:15-3:15] Why is the benchmark beatable? Its persistence is just below one, so every forecast is pulled toward an implied long-run mean. We computed that mean at all 261 origins. It sat below the actual spot rate at every single one, by 2.11 rand on average. So it leaned downward for five years against a currency going up. The chart is cumulative squared error: above zero we're ahead. The edge builds through the 2022-23 trend, peaks at 1.29, and gives some back. I'd rather show you that than crop it at the peak.");
 }
 
 /* ================= 5. RESULT 2: accuracy ============================= */
 {
   const s = slide("The combination cuts RMSE 0.42% below the benchmark; four of five models beat it");
-  s.addImage({ path: path.join(SFIG, "slide_rmse.png"), x: M, y: 1.45,
+  s.addImage({ path: path.join(SFIG, "rmse.png"), x: M, y: 1.45,
     w: 7.6, h: 4.75 });
 
   sectionHead(s, "What to take away", 8.35, 1.5, 4.5);
@@ -289,7 +289,7 @@ function appx(letter, title) {
 }
 {
   const s = appx("B", "We win four years of five; 2025 goes the other way and we say so");
-  s.addImage({ path: path.join(SFIG, "slide_yearly.png"), x: 2.4, y: 1.4,
+  s.addImage({ path: path.join(SFIG, "yearly.png"), x: 2.4, y: 1.4,
     w: 8.5, h: 4.7 });
   cite(s, "Own calculation from forecast_log.csv.");
   s.addNotes("2025 goes against us because the rand strengthened back toward the AR(1)'s mean, so its bias finally helped. That is regime dependence, and it is the argument for combining rather than picking one model.");
@@ -307,14 +307,14 @@ function appx(letter, title) {
     { text: "All daily market prices. Never revised, no publication lag, so look-ahead bias is impossible by construction rather than merely avoided.", options: {} },
   ], { x: M, y: 1.5, w: 6.6, h: 4.8, fontFace: F, fontSize: 18, color: INK,
     bullet: true, paraSpaceAfter: 15, margin: 0 });
-  s.addImage({ path: path.join(FIG, "fig4_series_panel.png"), x: 7.5, y: 1.4,
+  s.addImage({ path: path.join(FIG, "input_series.png"), x: 7.5, y: 1.4,
     w: 5.3, h: 5.15 });
-  cite(s, "SARB. MARKET_RATES 1.0.0. Pretoria: SARB [producer]. Johannesburg: EconData [distributor], 2026. Verification script: code/econdata_verify.py.");
+  cite(s, "SARB. MARKET_RATES 1.0.0. Pretoria: SARB [producer]. Johannesburg: EconData [distributor], 2026. Verification script: src/verify_provenance.py.");
   s.addNotes("Use for any data or look-ahead-bias question.");
 }
 {
   const s = appx("D", "The random walk's role as anchor was learned from performance, not imposed");
-  s.addImage({ path: path.join(FIG, "fig5_weights.png"), x: M, y: 1.5,
+  s.addImage({ path: path.join(FIG, "combination_weights.png"), x: M, y: 1.5,
     w: 7.6, h: 3.38 });
   s.addText([
     { text: "Frozen on the 2015 to 2020 validation era:", options: { bold: true, breakLine: true } },
@@ -349,7 +349,7 @@ function appx(letter, title) {
 }
 {
   const s = appx("F", "Forecasts track the realised series closely and lag it slightly, as a near-random walk should");
-  s.addImage({ path: path.join(FIG, "fig3_forecasts.png"), x: 1.3, y: 1.45,
+  s.addImage({ path: path.join(FIG, "forecasts_vs_actual.png"), x: 1.3, y: 1.45,
     w: 10.7, h: 5.03 });
   cite(s, "Own calculation. Forecasts plotted at their target dates against EXCX135.");
   s.addNotes("Use if a judge asks to see the forecasts themselves.");

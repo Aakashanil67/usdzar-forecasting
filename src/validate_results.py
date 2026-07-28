@@ -1,5 +1,5 @@
 """
-verify_charts.py — Independent audit of every number that appears in a chart,
+validate_results.py — Independent audit of every number that appears in a chart,
 a table or the text of the submitted documents.
 
 This script deliberately does NOT import anything from the pipeline. It rebuilds
@@ -7,7 +7,7 @@ the quantities from the raw files using its own code, then checks them against
 what the pipeline produced and against what is drawn in the figures. If any
 number in the submission had been typed in by hand or drifted, this fails.
 
-Run:  python code/verify_charts.py
+Run:  python src/validate_results.py
 """
 import json
 import re
@@ -369,7 +369,7 @@ except Exception as ex:              # pragma: no cover
 # 13. Numbers hard-coded in the deck must match the live metrics
 # ---------------------------------------------------------------------------
 print("\n13. HARD-CODED NUMBERS IN THE DECK SOURCE")
-js = (BASE / "presentation" / "build_deck.js").read_text(encoding="utf-8")
+js = (BASE / "src" / "make_presentation.js").read_text(encoding="utf-8")
 for lit, val, lab in [("15.4117", r["spot"], "worked-example spot"),
                       ("16.3482", r["realized"], "worked-example realised"),
                       ("15.4256", r["COMBO"], "worked-example combination"),

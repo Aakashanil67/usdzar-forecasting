@@ -1,5 +1,5 @@
 """
-econdata_verify.py — Official EconData extract loader + verification.
+verify_provenance.py — Official EconData extract loader + verification.
 
 The hackathon requires the USDZAR series EXCX135 as distributed by EconData.
 This script:
