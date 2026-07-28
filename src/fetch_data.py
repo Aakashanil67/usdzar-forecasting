@@ -1,5 +1,5 @@
 """
-fetch_data.py — Download all raw series for the SES x Codera FX hackathon.
+fetch_data.py - Download all raw series for the SES x Codera FX hackathon.
 
 Sources (all free, no API key):
   * SARB Web API  : EXCX135D (USDZAR, the official series), MMRD403A (JIBAR 3M),
@@ -8,10 +8,9 @@ Sources (all free, no API key):
                     DCOILBRENTEU (Brent)
   * Yahoo Finance : PL=F (platinum futures)
 
-The USDZAR series EXCX135 is published by SARB and distributed via EconData.
-The SARB Web API serves the *identical* series (code EXCX135D). For the official
-submission we additionally pull EXCX135 via EconData and verify equality
-(see verify_provenance.py).
+The USDZAR series EXCX135 is published by SARB and distributed via EconData. The
+SARB Web API serves the identical series under code EXCX135D. We pull EXCX135 from
+EconData as well and check the two against each other in verify_provenance.py.
 
 Every file is written to data/raw/<name>.csv with columns: date,value
 """

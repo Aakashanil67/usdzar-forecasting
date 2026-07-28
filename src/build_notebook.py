@@ -1,10 +1,9 @@
 """
-build_notebook.py — Generates notebooks/walkthrough.ipynb
+build_notebook.py - Generates notebooks/walkthrough.ipynb
 
-The notebook is the artefact most reviewers open first, so it is generated
-from a single source rather than hand-edited, which keeps it consistent with
-the pipeline. Cells are written unexecuted; run it once and commit the
-executed version so outputs render on GitHub.
+Generated from a single source rather than hand-edited, so it cannot drift out of
+step with the pipeline. Cells are written unexecuted. Run it once and commit the
+executed version so the outputs render on GitHub.
 
 Run:  python src/build_notebook.py
 """
@@ -38,27 +37,21 @@ def code(src):
 md("""
 # Forecasting USDZAR one month ahead
 
-**Can a simple forecast combination beat an AR(1) benchmark out of sample, and
-can we explain *why*?**
+Can a forecast combination beat an AR(1) benchmark out of sample, and can we say
+why?
 
-This notebook walks through the analysis end to end: the data, the models, the
-out-of-sample protocol, the results and the statistics. Everything below reads
-from committed artefacts, so it runs in seconds without refitting.
-
-The full pipeline that produced those artefacts is `python src/run_all.py`
-(about four minutes).
-
----
-
-### The short version
+This notebook walks through the analysis: the data, the models, the out-of-sample
+protocol, the results and the statistics. Everything below reads from committed
+artefacts, so it runs in seconds and refits nothing. The pipeline that produced
+those artefacts is `python src/run_all.py`, which takes about five minutes.
 
 | | |
 |---|---|
 | Forecasts | 261, one every Friday, 2021-01-01 to 2025-12-26 |
 | Horizon | 28 days ahead |
 | Our model | Combination of a random walk, a carry tilt and a shrunk ridge |
-| Result | RMSE **0.5600** against the AR(1) benchmark's **0.5624**, a **0.42%** improvement |
-| Significance | Not significant, and section 6 shows exactly why that was never achievable |
+| Result | RMSE 0.5600 against the AR(1) benchmark's 0.5624, an improvement of 0.42 per cent |
+| Significance | Not significant. Section 6 shows why it was never going to be |
 """)
 
 code("""
@@ -86,19 +79,19 @@ md("""
 ## 1. Why this problem is hard
 
 Meese and Rogoff (1983) showed that structural exchange-rate models lose to a
-naive no-change forecast out of sample, even when handed the true future values
-of their driving variables. Rossi's (2013) survey found the result has largely
-survived.
+naive no-change forecast out of sample, even when handed the true future values of
+their driving variables. Rossi's (2013) survey found the result had largely
+survived thirty years of attempts on it.
 
-The mechanism is simple. USDZAR is priced by a deep, liquid market, so anything
-publicly knowable is in the price within minutes. What is left to forecast a
-month out is a small and unstable residual. Published improvements over naive
-benchmarks run at roughly **1 to 5 percent in RMSE**, and come from shrinkage
-and combination rather than from richer models.
+The mechanism is not mysterious. USDZAR is priced by a deep, liquid market, so
+anything publicly knowable is in the price within minutes, and what is left to
+forecast a month out is a small and unstable residual. Published improvements over
+naive benchmarks run at roughly 1 to 5 per cent in RMSE, and they come from
+shrinkage and combination rather than from richer models.
 
-That sets the bar. A result far above that range in this setting is more likely
-to indicate a data leak than genuine skill, which is why so much of this project
-is spent on making leakage impossible rather than on model complexity.
+That sets the bar. A result far above that range in this setting points to a data
+leak more often than to skill, which is why so much of this project went into
+making leakage impossible rather than into model complexity.
 """)
 
 # ---------------------------------------------------------------- 2 data
@@ -106,26 +99,26 @@ md("""
 ---
 ## 2. Data and the information set
 
-The target is **EXCX135**, the SARB's rand-per-dollar rate, taken from the
-official EconData export and independently verified against the SARB Web API:
-9,141 overlapping observations, maximum absolute difference 0.000000.
+The target is EXCX135, the SARB's rand-per-dollar rate, taken from the official
+EconData export and checked independently against the SARB Web API: 9 141
+overlapping observations, maximum absolute difference 0.000000.
 
-Every predictor is a **daily market price or rate**:
+Every predictor is a daily market price or rate.
 
 | Predictor | Why |
 |---|---|
 | JIBAR 3M minus US 3M T-bill | the carry signal, from covered interest parity |
-| Gold, platinum | South Africa exports both; commodity-currency channel |
+| Gold, platinum | South Africa exports both, so the commodity-currency channel applies |
 | Brent | South Africa imports oil |
-| Broad USD index | much of "rand" movement is dollar movement |
-| VIX | global risk appetite; the rand is a liquid EM proxy |
+| Broad USD index | much of what looks like rand movement is dollar movement |
+| VIX | global risk appetite, and the rand trades as a liquid EM proxy |
 
-**This was a deliberate constraint.** Macro series like CPI and the current
-account have a genuine claim on a rand model, but they are released with a lag
-and revised afterwards. Using today's published history inside a simulated 2021
-forecast would mean using numbers that did not exist in 2021. Market prices are
-known instantly and never revised, so restricting to them makes look-ahead bias
-*structurally impossible* rather than merely avoided.
+That was a deliberate constraint. Macro series like CPI and the current account
+have a real claim on a rand model, but they are released late and revised
+afterwards. Using today's published history inside a simulated 2021 forecast would
+mean using numbers that did not exist in 2021. Market prices are known instantly
+and never revised, so restricting the information set to them makes look-ahead bias
+structurally impossible rather than merely avoided.
 """)
 
 code("""
@@ -150,25 +143,25 @@ md("""
 ## 3. The out-of-sample protocol
 
 At each Friday `t` we hold only information dated on or before `t`, and forecast
-the fixing 28 days later. Five guarantees make that claim auditable:
+the fixing 28 days later. Five guarantees make that claim auditable.
 
-1. **Information sets.** Every predictor enters via a backward `merge_asof`.
-2. **No publication lags.** Market prices only, as above.
-3. **Resolved-only training.** The regressions train only on origins whose
-   28-day outcome had already happened: `tr = tr[tr.index <= i - H]`.
-4. **Embargoed weights.** Combination weights use only errors from forecasts
-   resolved 28 days before the current origin.
-5. **Frozen configuration.** The feature set, intercept choice, decay and
-   sharpness were chosen on a **2015-2020 validation era** whose targets all
-   resolve before 2021, then frozen. The judged window never informed a
-   modelling decision.
+1. Information sets. Every predictor enters via a backward `merge_asof`.
+2. No publication lags. Market prices only, as above.
+3. Resolved-only training. The regressions train only on origins whose 28-day
+   outcome had already happened: `tr = tr[tr.index <= i - H]`.
+4. Embargoed weights. Combination weights use only errors from forecasts resolved
+   28 days before the current origin.
+5. Frozen configuration. The feature set, intercept choice, decay and sharpness
+   were chosen on a 2015-2020 validation era whose targets all resolve before 2021,
+   then frozen. The judged window never informed a modelling decision.
 
-Guarantee 5 is the one most backtests miss. Trying twenty configurations on the
-evaluation window and reporting the best makes that best number partly luck; it
+The fifth is the one most backtests miss. Trying twenty configurations on the
+evaluation window and reporting the best makes that best number partly luck, and it
 will not repeat. The full search grid is committed in
 `data/processed/validation_metrics.json`.
 
-These are enforced as tests, not just prose. `pytest -q` runs 14 of them.
+All five are enforced as tests rather than prose. `pytest -q` runs fourteen of
+them.
 """)
 
 code("""
@@ -186,18 +179,17 @@ md("""
 
 | Model | One line |
 |---|---|
-| **AR(1)** | The required benchmark. OLS with intercept on the weekly log level, expanding window from 1999, iterated four steps. |
-| **Random walk** | Forecast = today's rate. The strongest single benchmark at this horizon. |
-| **Carry** | $\\hat S_{t+28d} = S_t\\left(1 + (i^{ZA}_t - i^{US}_t)\\tfrac{28}{365}\\right)$, the covered-interest-parity forward rate. |
-| **Ridge** | 4-week log return on the compact predictor set. Standardised in-window, penalty by time-ordered CV, **no intercept** so heavy shrinkage collapses the model to the random walk rather than to a stale mean. |
-| **Gradient boosting** | Depth-2 comparator under identical discipline, included to measure what flexibility costs here. |
-| **Combination** | Inverse discounted-MSE weighted average of {RW, carry, ridge}, weights from resolved past errors only. |
+| AR(1) | The required benchmark. OLS with intercept on the weekly log level, expanding window from 1999, iterated four steps. |
+| Random walk | Forecast equals today's rate. The strongest single benchmark at this horizon. |
+| Carry | $\\hat S_{t+28d} = S_t\\left(1 + (i^{ZA}_t - i^{US}_t)\\tfrac{28}{365}\\right)$, the covered-interest-parity forward rate. |
+| Ridge | 4-week log return on the compact predictor set. Standardised in-window, penalty by time-ordered CV, no intercept, so heavy shrinkage collapses the model to the random walk instead of to a stale mean. |
+| Gradient boosting | Depth-2 comparator under identical discipline, included to measure what flexibility costs here. |
+| Combination | Inverse discounted-MSE weighted average of {RW, carry, ridge}, weights from resolved past errors only. |
 
-The no-intercept choice in the ridge is worth pausing on. Under heavy shrinkage
-the predicted return goes to zero, so the forecast becomes $S_t \\cdot e^0 = S_t$.
-A ridge that finds no signal *becomes* the random walk. The AR(1), by contrast,
-drifts toward its long-run mean, which is precisely the failure the next section
-quantifies.
+The no-intercept choice in the ridge is worth pausing on. Under heavy shrinkage the
+predicted return goes to zero, so the forecast becomes $S_t \\cdot e^0 = S_t$ and a
+ridge that finds no signal becomes the random walk. The AR(1) instead drifts toward
+its long-run mean, which is the failure the next section quantifies.
 """)
 
 # ---------------------------------------------------------------- 5 why
@@ -205,13 +197,13 @@ md("""
 ---
 ## 5. Why the benchmark loses: a measurable bias
 
-An AR(1) has persistence $\\phi$. Ours estimates between 0.9971 and 0.9986,
-just below one, so every forecast is pulled toward an implied long-run mean:
+An AR(1) has persistence $\\phi$. Ours estimates between 0.9971 and 0.9986, just
+below one, so every forecast gets pulled toward an implied long-run mean:
 
 $$\\mu = \\frac{c}{1-\\phi}$$
 
-We recomputed $\\mu$ at all 261 origins and compared it with that day's spot
-rate. The result below is the core finding of the project.
+We recomputed $\\mu$ at all 261 origins and compared it with that day's spot rate.
+What comes out is the core finding of the project.
 """)
 
 code("""
@@ -252,11 +244,11 @@ fig.tight_layout()
 
 md("""
 The shaded band is the bias. A mean-reverting model applied to a trending series
-pulls every forecast the wrong way, and because RMSE squares errors, the
-occasional large miss that produces dominates the score.
+pulls every forecast the wrong way, and because RMSE squares errors, the occasional
+large miss that produces does most of the damage.
 
-This is the whole result in one picture. Our models do not predict the rand
-better in any deep sense; they simply decline to make this specific mistake.
+Our models do not predict the rand better in any deep sense. They decline to make
+this one mistake.
 """)
 
 # ---------------------------------------------------------------- 6 results
@@ -281,11 +273,11 @@ pd.DataFrame(rows).set_index("model")
 
 md("""
 Four of five models beat the benchmark. Gradient boosting, run under identical
-rules, loses by 7.5 percent, and the pairwise DM matrix shows that is the one
-difference in the whole table that reaches significance.
+rules, loses by 7.5 per cent, and the pairwise DM matrix shows that is the one
+difference in the whole table reaching significance.
 
-**On significance.** Our improvement carries a DM p-value of 0.47. Rather than
-leave that as a weakness, the power analysis asks what would have been required.
+Our improvement carries a DM p-value of 0.47. Rather than leave that as a weakness,
+the power analysis asks what significance would have taken.
 """)
 
 code("""
@@ -299,16 +291,16 @@ print(pa["interpretation"])
 """)
 
 md("""
-With 261 overlapping origins, the smallest RMSE improvement detectable at 5%
-with 80% power is about **1.64%**. We observed 0.42%. Detecting an effect that
-size would need roughly **75 years of weekly forecasts**.
+With 261 overlapping origins, the smallest RMSE improvement detectable at 5 per
+cent with 80 per cent power is about 1.64 per cent. We observed 0.42 per cent.
+Detecting an effect that size would take roughly 75 years of weekly forecasts.
 
-So a non-significant result here is the *expected* outcome given the sample, not
-evidence the model does nothing. What can honestly be claimed is consistency:
-the combination beats the benchmark in four years of five, on the full window,
-on a stricter robustness cut, and in the validation era it never saw.
+So a non-significant result here is the expected outcome given the sample, rather
+than evidence the model does nothing. What can honestly be claimed is consistency.
+The combination beats the benchmark in four years of five, on the full window, on a
+stricter robustness cut, and in the validation era it never saw.
 
-Equally, it would be wrong to claim more. The rolling view below shows how thin
+Claiming more than that would be wrong, and the rolling view below shows how thin
 the margin really is.
 """)
 
@@ -340,9 +332,8 @@ md("""
 ---
 ## 7. One forecast, end to end
 
-Abstractions are easy to hide behind, so here is a single origin with every
-number: Friday **3 June 2022**, spot R15.4117, target 1 July 2022, actual
-R16.3482.
+A single origin with every number on it. Friday 3 June 2022, spot R15.4117, target
+1 July 2022, actual R16.3482.
 """)
 
 code("""
@@ -359,15 +350,15 @@ print(f"check:   {wr.RW:.3f}*{r.RW:.4f} + {wr.CARRY:.3f}*{r.CARRY:.4f}"
 """)
 
 md("""
-Every model was too low that month. The ordering is the point: the **AR(1) had
-the largest error of the six**, because its implied mean that day was R13.01 and
-that pull dragged its forecast down at exactly the moment the rand was rising.
+Every model was too low that month. The ordering is what matters: the AR(1) has the
+largest error of the six, because its implied mean that day was R13.01 and that
+pull dragged its forecast down at exactly the moment the rand was rising.
 
-Notice also how tightly the forecasts cluster: 15.386 to 15.467, a spread of
+Notice also how tightly the forecasts cluster. From 15.386 to 15.467, a spread of
 eight cents, against an actual move of 94 cents. At a one-month horizon no
-defensible model strays far from the current price. The competition between
-models is fought inside those few cents, which is why 0.42% is a real result and
-why a claimed 20% should invite scepticism rather than admiration.
+defensible model strays far from the current price. The competition between models
+is fought inside those few cents, which is why 0.42 per cent is a real result and
+why a claimed 20 per cent should invite scepticism rather than admiration.
 """)
 
 # ---------------------------------------------------------------- 8 close
@@ -375,33 +366,33 @@ md("""
 ---
 ## 8. What I would claim, and what I would not
 
-**Claimed.** A genuine, auditable out-of-sample design over 261 origins; a
-0.42% RMSE improvement that holds across four of five years and a stricter
-robustness cut; and an economic explanation for it that can be quantified
+What I would claim: an auditable out-of-sample design over 261 origins, an
+improvement of 0.42 per cent in RMSE that holds across four years of five and a
+stricter robustness cut, and an economic explanation for it that can be quantified
 rather than asserted.
 
-**Not claimed.** Statistical significance. Directional predictability, which
-sits near 50% for every model. Profitability, which was never tested and is a
-different objective from RMSE. Nor that the edge persists: 2025 goes the other
-way when the rand strengthens back toward the benchmark's mean.
+What I would not: statistical significance. Directional predictability, which sits
+near 50 per cent for every model. Profitability, which was never tested and is a
+different objective from RMSE. Or that the advantage persists, since 2025 goes the
+other way once the rand strengthens back toward the benchmark's mean.
 
-**What I would do next**, in order of expected value:
+Where I would go next, in order of expected value.
 
-1. **Option-implied volatility and risk reversals.** The SARB's own working
-   paper WP/22/14 finds distributional information about rand returns improves
-   forecasts. This is the most promising unexplored input.
-2. **Density rather than point forecasts.** For a treasurer deciding whether to
-   hedge, the distribution is the decision-relevant object, and it is where
-   forecasting a near-random-walk series genuinely adds value.
-3. **Bayesian model averaging** over a wider component set, which handles model
+1. Option-implied volatility and risk reversals. Greenwood-Nimmo, Steenkamp and van
+   Jaarsveld (SARB WP/22/14) find that distributional information about rand
+   returns improves forecasts. The most promising unexplored input.
+2. Density rather than point forecasts. For a treasurer deciding whether to hedge
+   the distribution is the decision-relevant object, and it is where forecasting a
+   near-random-walk series adds real value.
+3. Bayesian model averaging over a wider component set, which handles model
    uncertainty more formally than inverse-error weights.
-4. **Horizon sensitivity.** Repeat at 1, 2, 8 and 12 weeks to map where the
-   benchmark's mean-reversion bias starts to bite.
+4. Horizon sensitivity. Repeat at 1, 2, 8 and 12 weeks to map where the benchmark's
+   mean-reversion bias starts to bite.
 
 ---
 
-*Built for the SES x Codera Analytics Hackathon, July 2026. Full methodology in
-[`docs/METHODOLOGY.md`](../docs/METHODOLOGY.md); technical report in
+*Built for the SES x Codera Analytics Hackathon, July 2026. Full write-up in
+[`docs/METHODOLOGY.md`](../docs/METHODOLOGY.md), technical report in
 [`reports/technical_report.pdf`](../reports/technical_report.pdf).*
 """)
 

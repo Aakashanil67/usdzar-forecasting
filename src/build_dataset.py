@@ -1,7 +1,7 @@
 """
-build_dataset.py — Construct the weekly (Friday) forecasting dataset.
+build_dataset.py - Construct the weekly (Friday) forecasting dataset.
 
-Protocol (see Plan.md / report):
+Protocol:
   * Origin grid: every Friday. For each Friday t the information set is all
     observations DATED ON OR BEFORE t (as-of merge, backward). All predictors are
     daily financial-market series: no publication lags, no revisions -> the

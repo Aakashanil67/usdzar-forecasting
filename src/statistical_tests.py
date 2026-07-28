@@ -1,21 +1,19 @@
 """
-statistical_tests.py — Formal comparison of forecast accuracy.
+statistical_tests.py - Formal comparison of forecast accuracy.
 
-Three things a reviewer will ask for that a single Diebold-Mariano p-value does
-not answer:
+Three things a single Diebold-Mariano p-value does not answer.
 
-1. **A full pairwise DM matrix.** Which models differ from which, not just each
-   model against the benchmark. Overlapping 4-week forecasts make errors
-   serially correlated, so every test uses a Newey-West variance at lag h-1.
+1. Which models differ from which, not only each model against the benchmark.
+   Overlapping 4-week forecasts make errors serially correlated, so every test in
+   the pairwise matrix uses a Newey-West variance at lag h-1.
 
-2. **A power calculation.** "Not significant" is only informative if you know
-   what would have been required. Given the observed variance of the loss
-   differential, we compute the number of forecast origins needed to detect an
-   effect of this size at 5% with 80% power, and the effect size that WOULD
-   have been detectable with the 261 origins we had.
+2. What significance would have taken. Given the observed variance of the loss
+   differential we compute how many origins would be needed to detect an effect of
+   this size at 5% with 80% power, and what effect size would have been detectable
+   with the 261 origins we had.
 
-3. **Rolling accuracy.** A single full-sample RMSE hides when a model earned
-   its edge. We compute a 52-week rolling RMSE ratio against the benchmark.
+3. When the edge was earned. A single full-sample RMSE hides that, so we also
+   compute a 52-week rolling RMSE ratio against the benchmark.
 
 Outputs: data/processed/statistical_tests.json and two figures.
 
@@ -172,8 +170,8 @@ def main():
     ax.axhline(1, color="#444444", lw=1.2)
     ax.set_ylabel(f"{win}-week rolling RMSE ratio\n(combination / AR(1))",
                   fontsize=11)
-    ax.set_title("Where the edge actually came from: below 1.00 means our model "
-                 "is more accurate", fontsize=12.5, color=NAVY, pad=12)
+    ax.set_title("Below 1.00 means the combination was the more accurate of the "
+                 "two", fontsize=12.5, color=NAVY, pad=12)
     ax.legend(frameon=False, fontsize=10, loc="upper left", ncol=2)
     ax.grid(alpha=0.3)
     ax.spines[["top", "right"]].set_visible(False)

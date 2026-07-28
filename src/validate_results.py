@@ -1,5 +1,5 @@
 """
-validate_results.py — Independent audit of every number that appears in a chart,
+validate_results.py - Independent audit of every number that appears in a chart,
 a table or the text of the submitted documents.
 
 This script deliberately does NOT import anything from the pipeline. It rebuilds

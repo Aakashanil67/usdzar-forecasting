@@ -1,5 +1,5 @@
 """
-make_figures.py — All charts and tables for the report and deck.
+make_figures.py - All charts and tables for the report and deck.
 Every figure is saved to figures/ at 200 dpi with labelled axes and titles.
 
   rmse_by_model.png      : RMSE per model, value printed on every bar (rubric)
@@ -66,7 +66,7 @@ def main() -> None:
                     va="center", ha="left" if v >= 0 else "right",
                     fontsize=9, fontweight="bold")
     ax.axvline(0, color="black", lw=0.8)
-    ax.set_xlabel("RMSE improvement vs AR(1) baseline (%)  —  positive = better")
+    ax.set_xlabel("RMSE improvement vs AR(1) baseline (%)  -  positive = better")
     ax.set_title("Relative accuracy vs the AR(1) baseline (judged window)")
     ax.set_xlim(min(imp) * 1.35, max(imp) * 1.8)
     fig.tight_layout(); fig.savefig(FIG / "relative_improvement.png")
@@ -162,7 +162,7 @@ def main() -> None:
     t = ax.table(cellText=tbl.values, rowLabels=tbl.index,
                  colLabels=tbl.columns, loc="center", cellLoc="center")
     t.auto_set_font_size(False); t.set_fontsize(7); t.scale(1, 1.25)
-    ax.set_title("Summary statistics — weekly (Friday) series", fontsize=10)
+    ax.set_title("Summary statistics - weekly (Friday) series", fontsize=10)
     fig.tight_layout(); fig.savefig(FIG / "summary_statistics.png")
     plt.close(fig)
     print("figures written:", sorted(p.name for p in FIG.iterdir()))

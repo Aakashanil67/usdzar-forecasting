@@ -1,8 +1,7 @@
 """
-make_report.py — Generates reports/technical_report.pdf from the CURRENT pipeline
-outputs (metrics.json, validation_metrics.json, figures/). Re-run after any
-change; the report always reflects the latest numbers. Team name/members are
-read from report/team.txt if present (line 1 = team name, then members).
+make_report.py - Generates reports/technical_report.pdf from the CURRENT pipeline
+outputs (metrics.json, validation_metrics.json, figures/). Re-run after any change
+and the report reflects the latest numbers.
 """
 import datetime as dt
 import json

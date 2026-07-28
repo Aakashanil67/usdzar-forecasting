@@ -1,11 +1,10 @@
 """
-make_presentation_figures.py — Presentation-resolution versions of the two exhibits
+make_presentation_figures.py - Presentation-resolution versions of the two exhibits
 used on the results slides.
 
-The report figures are built for print: small fonts, no call-outs. Academic
-presentation practice asks for figures rebuilt at screen resolution with axis
-labels of at least 16pt and the key finding annotated directly on the chart, so
-the slide communicates without narration. Written to figures/slides/.
+The report figures are built for print, with small fonts and no call-outs. A slide
+needs axis labels of at least 16pt and the finding annotated on the chart itself,
+so it reads without narration. Written to figures/presentation/.
 
 Run:  python src/make_presentation_figures.py
 """
