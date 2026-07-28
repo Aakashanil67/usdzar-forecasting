@@ -16,6 +16,8 @@ report/_equations/
 
 # Personal study notes, not part of the submission
 report/Complete_Project_Guide.pdf
+report/Defence_Guide.pdf
+report/_eq_defence/
 
 # Derived packaging. Rebuild with: python code/make_submission.py
 submission/
