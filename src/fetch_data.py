@@ -12,7 +12,10 @@ The USDZAR series EXCX135 is published by SARB and distributed via EconData. The
 SARB Web API serves the identical series under code EXCX135D. We pull EXCX135 from
 EconData as well and check the two against each other in verify_provenance.py.
 
-Every file is written to data/raw/<name>.csv with columns: date,value
+Files are written to data/raw/snapshots/<today>/<name>.csv with columns
+date,value. The committed files in data/raw/ are never overwritten: the results
+in this repository come from them, and a later download will differ (revisions,
+extra days). To adopt a snapshot, copy it over data/raw/ by hand and rerun.
 """
 import json
 import time
@@ -22,10 +25,8 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-RAW = Path(__file__).resolve().parents[1] / "data" / "raw"
-RAW.mkdir(parents=True, exist_ok=True)
-
 TODAY = dt.date.today().isoformat()
+OUT = Path(__file__).resolve().parents[1] / "data" / "raw" / "snapshots" / TODAY
 UA = {"User-Agent": "Mozilla/5.0 (hackathon research script)"}
 
 
@@ -90,9 +91,10 @@ def main() -> None:
         ("brent",    lambda: fetch_fred("DCOILBRENTEU", "1990-01-01")),
         ("platinum", lambda: fetch_yahoo("PL=F", "1999-01-04")),
     ]
+    OUT.mkdir(parents=True, exist_ok=True)
     for name, fn in jobs:
         df = fn()
-        out = RAW / f"{name}.csv"
+        out = OUT / f"{name}.csv"
         df.to_csv(out, index=False)
         print(f"{name:10s} {len(df):6d} obs  {df.date.min().date()} -> {df.date.max().date()}")
 

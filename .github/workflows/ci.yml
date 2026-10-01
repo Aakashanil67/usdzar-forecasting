@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/package-lock.json
+
+      - run: pip install -r requirements-lock.txt
+
+      # Snapshot mode: rebuilds everything from the committed raw files.
+      - run: python src/run_all.py
+
+      - run: python -m pytest -q
+
+      - run: python src/validate_results.py
+
+      # The numeric outputs must match what is committed. Figures, the PDF and
+      # the deck embed timestamps and renderer details, so they are not compared.
+      - run: git diff --exit-code -- data/processed

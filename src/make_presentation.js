@@ -375,5 +375,5 @@ function appx(letter, title) {
   s.addNotes("Use if asked what the model actually does. It is the whole project in one month.");
 }
 
-pres.writeFile({ fileName: path.join(__dirname, "Deck.pptx") })
-  .then(() => console.log("Deck.pptx written: 6 presented + references + 7 appendix"));
+pres.writeFile({ fileName: path.join(__dirname, "..", "reports", "presentation.pptx") })
+  .then(() => console.log("reports/presentation.pptx written: 6 presented + references + 7 appendix"));

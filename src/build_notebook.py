@@ -2,12 +2,16 @@
 build_notebook.py - Generates notebooks/walkthrough.ipynb
 
 Generated from a single source rather than hand-edited, so it cannot drift out of
-step with the pipeline. Cells are written unexecuted. Run it once and commit the
-executed version so the outputs render on GitHub.
+step with the pipeline. The cells are executed with nbconvert before the file is
+written to notebooks/walkthrough.ipynb, so the committed notebook always carries
+its outputs and the file is left alone if a cell fails. Needs the nbconvert and
+ipykernel packages from requirements-lock.txt.
 
 Run:  python src/build_notebook.py
 """
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parents[1]
@@ -403,5 +407,11 @@ nb = {"cells": cells,
       "nbformat": 4, "nbformat_minor": 5}
 
 out = NB / "walkthrough.ipynb"
-out.write_text(json.dumps(nb, indent=1), encoding="utf-8")
-print("written:", out, f"({len(cells)} cells)")
+draft = NB / "_draft.ipynb"
+draft.write_text(json.dumps(nb, indent=1), encoding="utf-8")
+try:
+    subprocess.run([sys.executable, "-m", "jupyter", "nbconvert", "--to", "notebook",
+                    "--execute", "--output", out.name, str(draft)], check=True)
+finally:
+    draft.unlink()
+print("written:", out, f"({len(cells)} cells, executed)")

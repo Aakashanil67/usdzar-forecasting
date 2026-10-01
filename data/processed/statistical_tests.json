@@ -102,8 +102,8 @@
   "dm_note": "Row model against column model, squared-error loss, Newey-West variance at lag 3. Negative statistic means the ROW model is more accurate. Two-sided p-values.",
   "power_analysis": {
     "n_origins": 261,
-    "mean_loss_differential": -0.0026530299029753957,
-    "newey_west_sd_per_obs": 0.059184956382910485,
+    "mean_loss_differential": -0.002653029902975504,
+    "newey_west_sd_per_obs": 0.0591849563829104,
     "dm_statistic": -0.724,
     "dm_pvalue": 0.469,
     "observed_rmse_improvement_pct": 0.42,

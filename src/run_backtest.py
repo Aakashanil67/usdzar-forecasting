@@ -32,15 +32,19 @@ Models
 Outputs: data/processed/{forecast_log.csv, combo_weights.csv, metrics.json,
 validation_metrics.json}
 """
+import hashlib
 import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import sklearn
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.preprocessing import StandardScaler
+
+from statistical_tests import dm_test
 
 BASE = Path(__file__).resolve().parents[1]
 PROC = BASE / "data" / "processed"
@@ -57,6 +61,8 @@ EVAL_START, EVAL_END = "2021-01-01", "2025-12-31" # judged era (frozen models)
 ALPHAS = np.logspace(-2, 4, 7)
 ALPHA_REFRESH = 13                      # re-select ridge penalty quarterly
 GBM_REFIT_EVERY = 4
+GBM_PARAMS = dict(max_depth=2, learning_rate=0.05, max_iter=150,
+                  l2_regularization=1.0, random_state=42)
 
 
 def ar1_forecast(y: np.ndarray, steps: int) -> float:
@@ -80,20 +86,6 @@ def ridge_cv_alpha(X: np.ndarray, y: np.ndarray, fit_intercept: bool) -> float:
         if np.mean(mse) < best_mse:
             best, best_mse = a, np.mean(mse)
     return best
-
-
-def dm_test(e1: np.ndarray, e2: np.ndarray, lag: int = H - 1):
-    """Diebold-Mariano, squared loss, Newey-West var (overlapping forecasts).
-    Negative => model 1 more accurate."""
-    d = e1 ** 2 - e2 ** 2
-    n = len(d)
-    u = d - d.mean()
-    s = u @ u / n
-    for k in range(1, lag + 1):
-        s += 2 * (1 - k / (lag + 1)) * (u[k:] @ u[:-k]) / n
-    stat = d.mean() / np.sqrt(s / n)
-    from math import erf, sqrt
-    return stat, 2 * (1 - 0.5 * (1 + erf(abs(stat) / sqrt(2))))
 
 
 def run_members(w: pd.DataFrame) -> pd.DataFrame:
@@ -136,10 +128,8 @@ def run_members(w: pd.DataFrame) -> pd.DataFrame:
         x_t = w.loc[i, FEATS_FULL].values.astype(float)
         if len(tr) > 120 and np.isfinite(x_t).all():
             if gbm_age >= GBM_REFIT_EVERY:
-                gbm_model = HistGradientBoostingRegressor(
-                    max_depth=2, learning_rate=0.05, max_iter=150,
-                    l2_regularization=1.0, random_state=42
-                ).fit(tr[FEATS_FULL].values.astype(float), tr["y"].values)
+                gbm_model = HistGradientBoostingRegressor(**GBM_PARAMS).fit(
+                    tr[FEATS_FULL].values.astype(float), tr["y"].values)
                 gbm_age = 0
             gbm_age += 1
             row["GBM"] = float(s_t * np.exp(gbm_model.predict(x_t[None])[0]))
@@ -186,12 +176,14 @@ def score(log: pd.DataFrame, cols, start, end) -> dict:
 def members_cached(w: pd.DataFrame) -> pd.DataFrame:
     """Member forecasts are the slow stage. Cache them, keyed on the inputs and
     the settings that determine them, so a rerun is fast but any real change to
-    the data or the configuration invalidates the cache automatically."""
-    import hashlib
+    the data, the code or the configuration invalidates the cache automatically."""
+    code = b"".join(f.read_bytes() for f in sorted(Path(__file__).parent.glob("*.py")))
     key = hashlib.sha256(
-        (PROC / "weekly.csv").read_bytes()
-        + repr([FEATS_FULL, FEATS_CMP, H, WARMUP_START, EVAL_END,
-                list(ALPHAS), ALPHA_REFRESH, GBM_REFIT_EVERY]).encode()
+        (PROC / "weekly.csv").read_bytes() + code
+        + repr([FEATS_FULL, FEATS_CMP, H, WARMUP_START, VAL_START, VAL_END,
+                EVAL_START, EVAL_END, list(ALPHAS), ALPHA_REFRESH,
+                GBM_REFIT_EVERY, sorted(GBM_PARAMS.items()),
+                sklearn.__version__]).encode()
     ).hexdigest()
     cache, meta = PROC / "members_cache.csv", PROC / "members_cache.key"
     if cache.exists() and meta.exists() and meta.read_text().strip() == key:
@@ -227,7 +219,8 @@ def main() -> None:
         log.assign(COMBO=combo_series(log, ridge_tag, delta, theta)[0]),
         ["AR1_log", "AR1_level", "RW", "CARRY", ridge_tag, "GBM", "COMBO"],
         VAL_START, VAL_END)
-    val_scores["grid_top5"] = [dict(cfg=list(c), rmse=r) for c, r in grid[:5]]
+    val_scores["grid"] = [dict(ridge=c[0], delta=c[1], theta=c[2], rmse=r)
+                          for c, r in grid]
     with open(PROC / "validation_metrics.json", "w") as fh:
         json.dump(val_scores, fh, indent=2)
 
@@ -248,11 +241,11 @@ def main() -> None:
     base = min(["AR1_log", "AR1_level"], key=lambda v: res[v]["rmse"])
     res["_baseline_used"] = base
     for mname in ["RW", "CARRY", "RIDGE", "GBM", "COMBO"]:
-        stat, p = dm_test((ev[mname] - ev["realized"]).values,
-                          (ev[base] - ev["realized"]).values)
+        stat, p, _ = dm_test((ev[mname] - ev["realized"]).values,
+                             (ev[base] - ev["realized"]).values)
         res[mname]["dm_vs_ar1"] = [round(float(stat), 3), round(float(p), 4)]
-    stat, p = dm_test((ev["COMBO"] - ev["realized"]).values,
-                      (ev["RW"] - ev["realized"]).values)
+    stat, p, _ = dm_test((ev["COMBO"] - ev["realized"]).values,
+                         (ev["RW"] - ev["realized"]).values)
     res["COMBO"]["dm_vs_rw"] = [round(float(stat), 3), round(float(p), 4)]
 
     res["_yearly"] = {y: {mname: float(np.sqrt(((
