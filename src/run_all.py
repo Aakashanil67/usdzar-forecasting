@@ -22,6 +22,7 @@ PY_STEPS = [
     ("verify_provenance.py", "check EconData against the SARB Web API"),
     ("build_dataset.py", "build the weekly Friday dataset"),
     ("run_backtest.py", "walk-forward out-of-sample backtest"),
+    ("timing_sensitivity.py", "rerun with every non-spot predictor a week later"),
     ("statistical_tests.py", "DM matrix, power analysis, rolling accuracy"),
     ("make_figures.py", "report figures"),
     ("make_presentation_figures.py", "presentation figures"),

@@ -265,21 +265,47 @@ for name, mine_f in [("AR1_log", own_log), ("AR1_level", own_lvl),
 # 9. Figure 4 series panel and Table 3.1 come from real downloaded files
 # ---------------------------------------------------------------------------
 print("\n9. FIGURE 4 (input series) AND TABLE 3.1 (summary statistics)")
-for name, col in [("jibar3m", "jibar3m"), ("ustbill3m", "ustbill3m"),
-                  ("gold", "gold"), ("platinum", "platinum"),
-                  ("brent", "brent"), ("usd_broad", "usd_broad"),
-                  ("vix", "vix")]:
-    src = pd.read_csv(RAW / f"{name}.csv", parse_dates=["date"]).sort_values("date")
-    idx = src["date"].values
-    ok, bad = True, None
-    for f_date, plotted in wk[["friday", col]].dropna().tail(200).values:
-        pos = np.searchsorted(idx, np.datetime64(pd.Timestamp(f_date)),
-                              side="right") - 1
-        if pos < 0 or abs(src["value"].iloc[pos] - plotted) > 1e-9:
-            ok, bad = False, f_date
+issued = pd.to_datetime(wk["issued_at"], utc=True)
+series_meta = json.load(open(RAW / "series_metadata.json"))["series"]
+for name in ["spot", "jibar3m", "ustbill3m", "gold", "platinum", "brent",
+             "usd_broad", "vix"]:
+    used = wk[[name, f"{name}_obs_date", f"{name}_available_at"]].notna().all(axis=1)
+    late = (pd.to_datetime(wk.loc[used, f"{name}_available_at"], utc=True)
+            > issued[used]).sum()
+    check(f"'{name}' was public by every issuance time", late == 0,
+          f"{used.sum()} Fridays, {late} late")
+
+    # The value must be what the source file showed for that observation on
+    # the day before the Friday. A revision dated on the Friday itself came out
+    # at a US release time, after the 17:00 Johannesburg issuance.
+    code = series_meta["usdzar" if name == "spot" else name]["code"]
+    vint = RAW / "vintages" / f"{code}.csv"
+    if vint.exists():
+        src = pd.read_csv(vint, parse_dates=["obs_date", "realtime_start"])
+        first = src["realtime_start"].min()
+        by_obs = {d: g for d, g in src.groupby("obs_date")}
+    else:
+        src = pd.read_csv(RAW / ("usdzar.csv" if name == "spot" else f"{name}.csv"),
+                          parse_dates=["date"])
+        by_date = src.set_index("date")["value"]
+    bad = None
+    for f_date, d, plotted in wk.loc[used, ["friday", f"{name}_obs_date",
+                                            name]].values:
+        f_date, d = pd.Timestamp(f_date), pd.Timestamp(d)
+        if vint.exists():
+            g = by_obs[d]
+            known = g[g["realtime_start"] < f_date]
+            if known.empty:
+                known = g[g["realtime_start"] == first]
+            expect = known["value"].iloc[-1]
+        else:
+            expect = by_date.loc[d]
+        if d > f_date or abs(expect - plotted) > 1e-9:
+            bad = f_date
             break
-    check(f"fig4 panel '{name}' matches the downloaded file", ok,
-          f"{len(src)} raw rows" if ok else f"mismatch at {bad}")
+    check(f"fig4 panel '{name}' matches the source file", bad is None,
+          f"{'ALFRED vintages' if vint.exists() else 'raw file'}"
+          if bad is None else f"mismatch at {bad.date()}")
 
 stats = pd.read_csv(PROC / "table_summary_stats.csv", index_col=0)
 sp_mean = wk["spot"].mean()

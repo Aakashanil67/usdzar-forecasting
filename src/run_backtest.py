@@ -173,19 +173,19 @@ def score(log: pd.DataFrame, cols, start, end) -> dict:
     return res
 
 
-def members_cached(w: pd.DataFrame) -> pd.DataFrame:
+def members_cached(w: pd.DataFrame, name: str = "members_cache") -> pd.DataFrame:
     """Member forecasts are the slow stage. Cache them, keyed on the inputs and
     the settings that determine them, so a rerun is fast but any real change to
     the data, the code or the configuration invalidates the cache automatically."""
     code = b"".join(f.read_bytes() for f in sorted(Path(__file__).parent.glob("*.py")))
     key = hashlib.sha256(
-        (PROC / "weekly.csv").read_bytes() + code
+        pd.util.hash_pandas_object(w).values.tobytes() + code
         + repr([FEATS_FULL, FEATS_CMP, H, WARMUP_START, VAL_START, VAL_END,
                 EVAL_START, EVAL_END, list(ALPHAS), ALPHA_REFRESH,
                 GBM_REFIT_EVERY, sorted(GBM_PARAMS.items()),
                 sklearn.__version__]).encode()
     ).hexdigest()
-    cache, meta = PROC / "members_cache.csv", PROC / "members_cache.key"
+    cache, meta = PROC / f"{name}.csv", PROC / f"{name}.key"
     if cache.exists() and meta.exists() and meta.read_text().strip() == key:
         print("member forecasts: loaded from cache")
         return pd.read_csv(cache, parse_dates=["origin", "target_date"]
@@ -197,13 +197,10 @@ def members_cached(w: pd.DataFrame) -> pd.DataFrame:
     return log
 
 
-def main() -> None:
-    w = pd.read_csv(PROC / "weekly.csv",
-                    parse_dates=["friday", "target_date"]).reset_index(drop=True)
-    log = members_cached(w)
-
-    # ---------- model selection on the VALIDATION era only ----------
-    grid, val_scores = [], {}
+def select_config(log: pd.DataFrame) -> list:
+    """Score every (ridge variant, delta, theta) on the validation era,
+    best first."""
+    grid = []
     for tag in ["RIDGE_f1", "RIDGE_f0", "RIDGE_c1", "RIDGE_c0"]:
         for delta in [1.0, 0.99, 0.97]:
             for theta in [1.0, 2.0]:
@@ -211,7 +208,17 @@ def main() -> None:
                 tmp = log.copy(); tmp["COMBO"] = combo
                 r = score(tmp, ["COMBO"], VAL_START, VAL_END)["COMBO"]["rmse"]
                 grid.append(((tag, delta, theta), r))
-    grid.sort(key=lambda g: g[1])
+    return sorted(grid, key=lambda g: g[1])
+
+
+def main() -> None:
+    w = pd.read_csv(PROC / "weekly.csv",
+                    parse_dates=["friday", "target_date"]).reset_index(drop=True)
+    log = members_cached(w)
+
+    # ---------- model selection on the VALIDATION era only ----------
+    val_scores = {}
+    grid = select_config(log)
     (ridge_tag, delta, theta), val_rmse = grid[0]
     val_scores["chosen_config"] = dict(ridge=ridge_tag, delta=delta,
                                        theta=theta, val_rmse=val_rmse)

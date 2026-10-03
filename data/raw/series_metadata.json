@@ -1,0 +1,136 @@
+{
+  "issuance": {
+    "weekday": "Friday",
+    "time": "17:00",
+    "timezone": "Africa/Johannesburg",
+    "note": "A forecast is issued at 17:00 Johannesburg time on each Friday, after the SARB 10:30 rand rate and JIBAR, and before any US close of the same day. A value enters the forecast only if it was available at or before that moment."
+  },
+  "series": {
+    "usdzar": {
+      "code": "EXCX135D",
+      "publisher": "South African Reserve Bank",
+      "description": "Rand per US dollar, weighted average of the banks' daily rates at approximately 10:30",
+      "observation_time": "10:30",
+      "timezone": "Africa/Johannesburg",
+      "timestamp_basis": "observation",
+      "release_rule": "same_day",
+      "release_time": "10:30",
+      "release_lag_business_days": 0,
+      "revised": false,
+      "vintage_source": "none; a market fixing, the committed snapshot is the only vintage",
+      "source_url": "https://www.resbank.co.za/en/home/what-we-do/statistics/key-statistics/current-market-rates",
+      "notes": "The rate is struck from bank dealing rates at about 10:30, so a trader could see the market at that level on the day. SARB posts the series later; the observation time is used because the rate tracks a price traders watch live."
+    },
+    "jibar3m": {
+      "code": "MMRD403A",
+      "publisher": "JSE, distributed by the South African Reserve Bank",
+      "description": "3-month JIBAR, a trimmed average of contributor banks' NCD mid rates",
+      "observation_time": "10:00",
+      "timezone": "Africa/Johannesburg",
+      "timestamp_basis": "publication",
+      "release_rule": "same_day",
+      "release_time": "11:00",
+      "release_lag_business_days": 0,
+      "revised": false,
+      "vintage_source": "none; JIBAR fixings are not revised after publication",
+      "source_url": "https://www.resbank.co.za/content/dam/sarb/publications/jibar/2012/5292/JibarReview.pdf",
+      "notes": "Published at 11:00 until 30 September 2012 and at 10:00 from 1 October 2012 (SARB JIBAR review, footnote 4). 11:00 is used throughout, the later of the two. A small number of rows in the SARB file are dated Saturday and mostly repeat Friday; they are never visible at a Friday issuance."
+    },
+    "gold": {
+      "code": "GDPL201D",
+      "publisher": "South African Reserve Bank, from the London gold fixings (LBMA Gold Price since 20 March 2015)",
+      "description": "London gold price in US dollars per fine ounce, average of the day's a.m. and p.m. fixings",
+      "observation_time": "15:00",
+      "timezone": "Europe/London",
+      "timestamp_basis": "observation",
+      "release_rule": "same_day",
+      "release_time": "15:30",
+      "release_lag_business_days": 0,
+      "revised": false,
+      "vintage_source": "none; a market fixing",
+      "source_url": "https://econdata.co.za/user-guide/sarb/rates/",
+      "secondary_urls": [
+        "https://www.lbma.org.uk/prices-and-data/lbma-gold-price/lbma-gold-price"
+      ],
+      "notes": "The daily value is the mean of the a.m. and p.m. fixes, so it exists only once the 15:00 London p.m. auction has cleared. 15:30 London allows 30 minutes for the auction rounds; that is a conservative assumption, not a published time. In UK summer this is 16:30 Johannesburg, before issuance; in UK winter it is 17:30, so a Friday issuance in winter uses Thursday's price."
+    },
+    "platinum": {
+      "code": "PL=F",
+      "publisher": "Yahoo Finance, NYMEX platinum front-month futures (CME Group)",
+      "description": "Daily close of the continuous front-month NYMEX platinum future",
+      "observation_time": "17:00",
+      "timezone": "America/New_York",
+      "timestamp_basis": "observation",
+      "release_rule": "same_day",
+      "release_time": "17:00",
+      "release_lag_business_days": 0,
+      "revised": false,
+      "vintage_source": "none; Yahoo keeps no vintages",
+      "source_url": "https://www.cmegroup.com/markets/metals/precious/platinum.contractSpecs.html",
+      "secondary_urls": [
+        "https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457318906/Platinum"
+      ],
+      "notes": "CME settles platinum on the 13:03-13:05 ET VWAP, but Yahoo does not say whether its daily close is the settlement or the last trade. The end of the CME Globex day, 17:00 ET, is used as the conservative choice. Either way a Friday issuance at 10:00-11:00 ET sees Thursday's close at the latest."
+    },
+    "ustbill3m": {
+      "code": "DTB3",
+      "publisher": "Board of Governors of the Federal Reserve System, H.15 Selected Interest Rates",
+      "description": "3-month Treasury bill, secondary market rate, discount basis",
+      "observation_time": "close of business",
+      "timezone": "America/New_York",
+      "timestamp_basis": "publication",
+      "release_rule": "next_us_business_day",
+      "release_time": "16:15",
+      "release_lag_business_days": 1,
+      "revised": true,
+      "vintage_source": "ALFRED real-time periods, data/raw/vintages/DTB3.csv",
+      "source_url": "https://www.federalreserve.gov/releases/h15/",
+      "notes": "H.15 is posted Monday to Friday at 4:15 p.m. ET and carries the previous business day's rates. ALFRED first-release dates agree: one US business day in most cases, occasionally two, and the later of the schedule and the ALFRED date is used. A Friday issuance therefore sees Wednesday's rate. 35 observations have been revised since 2005."
+    },
+    "vix": {
+      "code": "VIXCLS",
+      "publisher": "Cboe Global Markets",
+      "description": "Cboe Volatility Index, daily close",
+      "observation_time": "16:15",
+      "timezone": "America/New_York",
+      "timestamp_basis": "publication",
+      "release_rule": "same_day",
+      "release_time": "16:15",
+      "release_lag_business_days": 0,
+      "revised": true,
+      "vintage_source": "ALFRED real-time periods, data/raw/vintages/VIXCLS.csv",
+      "source_url": "https://cdn.cboe.com/resources/indices/Volatility_Index_Methodology_Cboe_Volatility_Index.pdf",
+      "notes": "Cboe disseminates the index during regular trading hours, 09:31 to 16:15 ET (methodology, section 4), so the close is public at that time. 16:15 ET is 22:15 or 23:15 Johannesburg, after issuance, so a Friday issuance sees Thursday's close. ALFRED sometimes records the close a day or more later; the later of the two is used. 11 observations have been revised since 2010."
+    },
+    "usd_broad": {
+      "code": "DTWEXBGS",
+      "publisher": "Board of Governors of the Federal Reserve System, H.10 Foreign Exchange Rates",
+      "description": "Nominal Broad U.S. Dollar Index, goods and services",
+      "observation_time": "noon buying rates, New York",
+      "timezone": "America/New_York",
+      "timestamp_basis": "publication",
+      "release_rule": "monday_after_week",
+      "release_time": "16:15",
+      "release_lag_business_days": "1 to 5 (released the first US business day after the reference week)",
+      "revised": true,
+      "vintage_source": "ALFRED real-time periods, data/raw/vintages/DTWEXBGS.csv; first vintage 2019-02-04",
+      "source_url": "https://www.federalreserve.gov/releases/h10/",
+      "notes": "H.10 is released on Mondays at 4:15 p.m. ET with the previous business week's data, or on the next business day when Monday is a federal holiday. A Friday issuance therefore sees nothing later than the previous Friday. Every observation is revised when the trade weights are updated, and the first vintage (2019-02-04 to 2019-06-23) used a different base. Before the first vintage the 2019-02-04 values are used with the schedule lag; that is an approximation, because the values a forecaster saw before 2019 came from an earlier index definition that ALFRED does not hold."
+    },
+    "brent": {
+      "code": "DCOILBRENTEU",
+      "publisher": "U.S. Energy Information Administration",
+      "description": "Europe Brent spot price FOB, US dollars per barrel",
+      "observation_time": "close of London trading",
+      "timezone": "America/New_York",
+      "timestamp_basis": "publication",
+      "release_rule": "wednesday_after_two_days",
+      "release_time": "17:00",
+      "release_lag_business_days": "2 to 8 (weekly release on Wednesday)",
+      "revised": true,
+      "vintage_source": "ALFRED real-time periods, data/raw/vintages/DCOILBRENTEU.csv; first vintage 2011-04-06",
+      "source_url": "https://www.eia.gov/dnav/pet/pet_pri_spt_s1_d.htm",
+      "notes": "EIA updates daily spot prices once a week on Wednesday; the 30 September 2026 release ran to the previous day. ALFRED first-release dates show FRED receiving data only up to the Monday before each Wednesday, so the rule is the first Wednesday at least two days after the observation, which is the conservative reading. EIA does not state a release time; 17:00 ET is assumed. 23 observations have been revised since 2011. Before the first vintage the 2011-04-06 values are used with the same rule."
+    }
+  }
+}

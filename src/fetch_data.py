@@ -13,12 +13,17 @@ SARB Web API serves the identical series under code EXCX135D. We pull EXCX135 fr
 EconData as well and check the two against each other in verify_provenance.py.
 
 Files are written to data/raw/snapshots/<today>/<name>.csv with columns
-date,value. The committed files in data/raw/ are never overwritten: the results
+date,value. The revised FRED series also get their full revision history from
+ALFRED, in vintages/<FRED code>.csv with columns obs_date,value,realtime_start:
+one row for each value an observation has had, dated from the day ALFRED first
+shows it. The committed files in data/raw/ are never overwritten: the results
 in this repository come from them, and a later download will differ (revisions,
 extra days). To adopt a snapshot, copy it over data/raw/ by hand and rerun.
 """
-import json
+import io
+import re
 import time
+import zipfile
 import datetime as dt
 from pathlib import Path
 
@@ -80,6 +85,49 @@ def fetch_yahoo(symbol: str, start: str) -> pd.DataFrame:
     return df.drop_duplicates("date").sort_values("date").reset_index(drop=True)
 
 
+def fetch_alfred(series: str) -> pd.DataFrame:
+    """Every value each observation of a FRED series has had, from ALFRED's
+    download form ("Observations by Real-Time Period"). No API key is needed.
+    The form accepts at most 450 vintages a request, so vintages go in chunks;
+    each chunk repeats the periods it shares with its neighbours, which the
+    de-duplication removes."""
+    url = f"https://alfred.stlouisfed.org/series/downloaddata?seid={series}"
+    s = requests.Session()
+    page = s.get(url, timeout=60, headers=UA).text
+    box = page[page.find('id="form_selected_vintage_dates"'):]
+    vintages = re.findall(r'value="(\d{4}-\d\d-\d\d)"', box[:box.find("</select>")])
+    first, last = (re.search(rf'id="form_obs_{k}_date"[^>]*value="([\d-]+)"', page).group(1)
+                   for k in ("start", "end"))
+    frames = []
+    for i in range(0, len(vintages), 440):
+        form = [("form[units]", "lin"), ("form[obs_start_date]", first),
+                ("form[obs_end_date]", last)]
+        form += [("form[selected_vintage_dates][]", v) for v in vintages[i:i + 441]]
+        form += [("form[entered_vintage_dates]", ""), ("form[file_type]", "1"),
+                 ("form[file_format]", "csv"), ("form[download_data]", "")]
+        for attempt in range(3):        # the form returns the odd 500 under load
+            r = s.post(url, data=form, timeout=600, headers={**UA, "Referer": url})
+            if r.status_code != 500:
+                break
+            time.sleep(30)
+        r.raise_for_status()
+        z = zipfile.ZipFile(io.BytesIO(r.content))
+        csv = next(n for n in z.namelist() if n.endswith(".csv"))
+        frames.append(pd.read_csv(io.BytesIO(z.read(csv)), na_values="."))
+        time.sleep(2)
+    df = (pd.concat(frames)
+            .rename(columns={"period_start_date": "obs_date", series: "value",
+                             "realtime_start_date": "realtime_start"})
+            [["obs_date", "value", "realtime_start"]]
+            .dropna()
+            .drop_duplicates()
+            .sort_values(["obs_date", "realtime_start"]))
+    # keep a row only where the value changed from the previous period
+    same = (df["obs_date"].eq(df["obs_date"].shift())
+            & df["value"].eq(df["value"].shift()))
+    return df[~same].reset_index(drop=True)
+
+
 def main() -> None:
     jobs = [
         ("usdzar",   lambda: fetch_sarb("EXCX135D", "1990-01-01")),
@@ -97,6 +145,13 @@ def main() -> None:
         out = OUT / f"{name}.csv"
         df.to_csv(out, index=False)
         print(f"{name:10s} {len(df):6d} obs  {df.date.min().date()} -> {df.date.max().date()}")
+
+    (OUT / "vintages").mkdir(exist_ok=True)
+    for series in ["DTB3", "VIXCLS", "DTWEXBGS", "DCOILBRENTEU"]:
+        df = fetch_alfred(series)
+        df.to_csv(OUT / "vintages" / f"{series}.csv", index=False)
+        print(f"{series:12s} {len(df):6d} real-time rows, "
+              f"{df.realtime_start.nunique()} vintage dates")
 
 
 if __name__ == "__main__":

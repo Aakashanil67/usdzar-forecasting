@@ -106,9 +106,48 @@ weak link in any analysis. This turns it into a claim someone can check.
 |---|---|---|
 | JIBAR 3M minus US 3M T-bill | SARB Web API, FRED `DTB3` | The carry signal. Covered interest parity says the forward rate embeds this gap. |
 | Gold, platinum | SARB, NYMEX | South Africa exports both in quantity. Higher prices, stronger rand. |
-| Brent crude | FRED | South Africa imports oil. Higher prices, weaker rand. |
+| Brent crude | FRED `DCOILBRENTEU` (EIA) | South Africa imports oil. Higher prices, weaker rand. |
 | Broad US dollar index | FRED `DTWEXBGS` | Much of what looks like rand movement is dollar movement against everything. |
 | VIX | FRED `VIXCLS` | Global risk appetite. The rand is one of the most liquid EM currencies, so it gets traded as a risk proxy. |
+
+### When each series is known
+
+A forecast is issued at 17:00 Johannesburg time each Friday. That is after the
+SARB's 10:30 rand rate and the morning JIBAR fix, and before any US market closes
+that day. A value is used only if it was public by then. Each release rule below
+comes from the publisher's own schedule; `data/raw/series_metadata.json` holds the
+rule, the source URL and the reasoning for every series.
+
+| Series | Public at | Newest value a Friday forecast sees |
+|---|---|---|
+| USDZAR `EXCX135D` | 10:30 Johannesburg, same day | Friday |
+| JIBAR 3M | 11:00 Johannesburg, same day (10:00 since October 2012) | Friday |
+| Gold, mean of the London a.m. and p.m. fixes | 15:30 London, 30 minutes after the p.m. auction starts | Friday in UK summer, Thursday in UK winter |
+| Platinum `PL=F` | 17:00 New York, end of the CME day | Thursday |
+| US 3M T-bill `DTB3` | H.15, 16:15 New York the next business day | Wednesday |
+| VIX | Cboe close, 16:15 New York | Thursday |
+| Broad dollar index `DTWEXBGS` | H.10, 16:15 New York the Monday after the week | Previous Friday |
+| Brent `DCOILBRENTEU` | EIA weekly update on Wednesday | Monday |
+
+Market fixings that a trader could watch as they happened (the SARB rate, the gold
+fix, platinum) are stamped at the time they were struck. Published rates and
+indices are stamped when they were published. Where the schedule leaves room, the
+rule takes the later reading: the platinum close is taken at the end of the CME
+day rather than at the 13:05 settlement, and Brent is treated as arriving only up
+to the Monday before each Wednesday update, because that is what FRED actually
+received. The gold rule is the one I am least sure of: the 30 minutes is my
+allowance for the auction, not a published time.
+
+Four of the series are revised. The broad dollar index is revised every time its
+trade weights are, which touches every observation. Brent, the T-bill rate and
+the VIX have had 23, 35 and 11 observations revised. For these the value used is
+the one ALFRED, the St. Louis Fed's vintage archive, showed at the time
+(`data/raw/vintages/`), and a four-week return takes both ends from that same
+vintage, so a revision cannot pass itself off as a price move. ALFRED's history
+starts in 2019 for the dollar index, 2011 for Brent, 2010 for the VIX and 2005 for
+the T-bill. Before those dates the earliest vintage stands in for what was known.
+That is an approximation. For the dollar index it matters most, because the index
+was redefined in 2019 and the pre-2019 versions are not in ALFRED.
 
 ### The constraint that matters most
 
@@ -121,10 +160,10 @@ years afterwards. A backtest that uses today's published history of CPI inside a
 simulated forecast made in March 2021 is using numbers that did not exist in March
 2021, and in some cases did not exist in that form until 2023.
 
-Market prices are known the instant they print and are never revised. Restricting
-the information set to them makes look-ahead bias impossible by construction rather
-than avoided by careful coding. I would rather defend a smaller model that cannot
-cheat than a larger one that might.
+Market data narrows the problem but does not remove it. The dollar index, Brent,
+the T-bill rate and the VIX all reach the public hours to days after the fact, and
+some are revised later, so the timing still has to be modelled. The previous
+section sets out how.
 
 ---
 
@@ -134,11 +173,17 @@ This is the part I would most want a reviewer to check, because it is where
 forecasting results usually go wrong. Five guarantees, each enforced in code and
 then again in a test.
 
-**Information sets are backward-looking by construction.** Every predictor joins
-the weekly grid through a backward `merge_asof`, so a forecast made on Friday `t`
-can only see observations dated on or before `t`.
+**Information sets follow publication, not observation.** A predictor joins the
+weekly grid only once it was public by the Friday 17:00 issuance time, with the
+vintage then current where the series is revised (section 3). `weekly.csv` keeps,
+for every input, the observation date used and the moment that value became
+public, so the timing can be checked row by row. The audit confirms that every
+value was public by its issuance time and matches the source file as it then stood.
 
-**No publication lags.** Market data only, for the reasons in section 3.
+**Timing sensitivity.** The release rules involve some judgement, so
+`timing_sensitivity.py` reruns the whole backtest, selection included, with every
+non-spot predictor a further week late. RMSE for each model under both timings is
+in `data/processed/timing_sensitivity.json`.
 
 **Resolved-only training.** The regressions train only on origins whose 28-day
 outcome had already happened by the time of the forecast:
@@ -596,22 +641,23 @@ pytest -q                 # fourteen leakage and integrity tests
 No API keys and no paid data. The raw files are committed, so the pipeline runs
 offline from `build_dataset.py` onwards.
 
-`run_all.py` executes ten stages in order:
+`run_all.py` executes these stages in order. Stage 1 runs only with `--refresh`:
 
 | Stage | Script | What it does |
 |---|---|---|
-| 1 | `fetch_data.py` | Download every raw series |
+| 1 | `fetch_data.py` | Download every raw series and the ALFRED vintages into a dated snapshot |
 | 2 | `verify_provenance.py` | Check EconData against the SARB Web API |
-| 3 | `build_dataset.py` | Build the weekly Friday dataset with backward as-of merges |
+| 3 | `build_dataset.py` | Build the weekly Friday dataset from what was public at each issuance |
 | 4 | `run_backtest.py` | Walk-forward out-of-sample backtest, all six models |
-| 5 | `statistical_tests.py` | DM matrix, power analysis, rolling accuracy |
-| 6 | `make_figures.py` | Report figures |
-| 7 | `make_presentation_figures.py` | Presentation figures |
-| 8 | `validate_results.py` | Audit every plotted number against the raw data |
-| 9 | `make_report.py` | Build the technical report PDF |
-| 10 | `build_notebook.py` | Regenerate the walkthrough notebook |
+| 5 | `timing_sensitivity.py` | Rerun the backtest with every non-spot predictor a week later |
+| 6 | `statistical_tests.py` | DM matrix, power analysis, rolling accuracy |
+| 7 | `make_figures.py` | Report figures |
+| 8 | `make_presentation_figures.py` | Presentation figures |
+| 9 | `validate_results.py` | Audit every plotted number against the raw data |
+| 10 | `make_report.py` | Build the technical report PDF |
+| 11 | `build_notebook.py` | Regenerate the walkthrough notebook |
 
-Stage 4 caches its intermediate results keyed on a SHA-256 hash of the input data
+Stages 4 and 5 cache their intermediate results keyed on a SHA-256 hash of the input data
 plus the configuration, so a rerun with unchanged inputs is fast and a rerun with
 changed inputs recomputes on its own. The cache is gitignored.
 

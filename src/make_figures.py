@@ -107,7 +107,7 @@ def main() -> None:
     for ax, (col, title) in zip(axes.ravel(), panels):
         ax.plot(w.index, w[col], lw=0.7, color="#1f5fa8")
         ax.set_title(title, fontsize=8.5)
-    fig.suptitle("Series used in the model (weekly, as-of each Friday)", y=0.995)
+    fig.suptitle("Series used in the model, as known at each Friday 17:00 issuance", y=0.995)
     fig.tight_layout(); fig.savefig(FIG / "input_series.png"); plt.close(fig)
 
     # ---- fig 5: combination weights -----------------------------------
