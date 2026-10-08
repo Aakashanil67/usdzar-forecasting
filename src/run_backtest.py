@@ -130,10 +130,13 @@ def ar1_forecast(y: np.ndarray, steps: int) -> float:
     return f
 
 
-def run_members(w: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Member forecasts for every origin >= WARMUP_START, plus the purged-CV
-    score of every GBM configuration at each yearly retune."""
-    origins = w[(w.friday >= WARMUP_START) & (w.friday <= EVAL_END)].index
+def run_members(w: pd.DataFrame, origins=None
+                ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Member forecasts for every origin >= WARMUP_START (or for the given row
+    labels of `w`), plus the purged-CV score of every GBM configuration at
+    each yearly retune."""
+    if origins is None:
+        origins = w[(w.friday >= WARMUP_START) & (w.friday <= EVAL_END)].index
     alphas, rows, gbm_trials = {}, [], {}
     gbm_cfg, gbm_fit, gbm_age, since_tune = None, None, 0, GBM_RETUNE_EVERY
 
@@ -214,6 +217,23 @@ def combo_series(log: pd.DataFrame, ridge_tag: str, delta: float,
         wlog.append(wgt)
     return (pd.Series(out, index=dates, name="COMBO"),
             pd.DataFrame(wlog, index=dates, columns=members))
+
+
+def forecast_at(origin, w: pd.DataFrame, ridge_tag: str, delta: float,
+                theta: float, lookback: int = 31) -> pd.Series:
+    """Every model's forecast issued on `origin`, from the last `lookback`
+    weekly rows of `w` up to and including it. It goes through run_members and
+    combo_series, so it is the same fitting code as the full backtest, but the
+    ridge penalty, the GBM configuration and the combination weights start from
+    this shorter history. It does not reproduce forecast_log.csv; it exists to
+    ask what a single forecast depends on. Thirty-one rows leave 27 resolved
+    errors, enough for the combination to leave equal weights."""
+    rows = w.index[w["friday"] <= pd.Timestamp(origin)][-lookback:]
+    assert w.at[rows[-1], "friday"] == pd.Timestamp(origin), (
+        f"{origin} is not a Friday on the weekly grid")
+    log, _ = run_members(w, rows)
+    log["COMBO"] = combo_series(log, ridge_tag, delta, theta)[0]
+    return log.iloc[-1].drop(["target_date", "realized"])
 
 
 def score(ev: pd.DataFrame, cols) -> dict:

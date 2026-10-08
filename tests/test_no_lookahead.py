@@ -1,22 +1,19 @@
 """
-Leakage and integrity tests.
-
-A forecasting backtest is only worth reading if the forecasts could actually
-have been made at the time they claim. These tests encode that claim so it
-fails loudly rather than silently, which is the difference between a backtest
-and a plot.
+Checks on the saved judged-era forecast log: its shape, its agreement with the
+raw target series, and the internal consistency of the combination and the
+metrics. Leakage in the inputs and the fitting is tested in
+test_dataset_timing.py, test_fitting.py and test_future_perturbation.py; the
+audit script is tested in test_audit_exit.py.
 
 Run:  pytest -q
 """
 import json
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
-BASE = Path(__file__).resolve().parents[1]
-PROC, RAW = BASE / "data" / "processed", BASE / "data" / "raw"
+from conftest import PROC, RAW
 
 H_DAYS = 28
 N_EXPECTED = 261
@@ -33,20 +30,6 @@ def log():
 def weekly():
     return pd.read_csv(PROC / "weekly.csv",
                        parse_dates=["friday", "target_date"])
-
-
-@pytest.fixture(scope="module")
-def spot():
-    """The raw target series, parsed independently of the pipeline."""
-    rows = []
-    with open(RAW / "econdata_excx135.csv", encoding="utf-8-sig") as fh:
-        for line in fh:
-            parts = line.rstrip("\n").split(",")
-            if len(parts) >= 2 and parts[0][:4].isdigit() and parts[1].strip():
-                rows.append((parts[0].strip(), float(parts[1])))
-    df = pd.DataFrame(rows, columns=["date", "px"])
-    df["date"] = pd.to_datetime(df["date"])
-    return df.sort_values("date").reset_index(drop=True)
 
 
 @pytest.fixture(scope="module")
@@ -103,9 +86,9 @@ def test_random_walk_forecast_is_exactly_the_origin_spot(log):
     assert np.allclose(log["RW"], log["spot"], atol=0, rtol=0)
 
 
-def test_no_predictor_is_dated_after_its_friday(weekly, spot):
-    """Every as-of merge must look backwards. Sample the target series against
-    the weekly grid."""
+def test_weekly_spot_is_the_last_fixing_on_or_before_each_friday(weekly, spot):
+    """Spot on the weekly grid must come from a fixing no later than the
+    Friday it is attached to. Predictor timing is in test_dataset_timing.py."""
     idx = spot["date"].values
     sub = weekly.dropna(subset=["spot"]).tail(400)
     for _, r in sub.iterrows():
@@ -145,26 +128,10 @@ def test_combination_forecast_lies_within_the_span_of_its_members(log):
     assert (log["COMBO"] <= hi + 1e-9).all()
 
 
-def test_headline_claim_holds(metrics):
-    """The claim the whole project rests on."""
-    assert metrics["COMBO"]["rmse"] < metrics["AR1_log"]["rmse"]
-    beat = sum(metrics[m]["rmse"] < metrics["AR1_log"]["rmse"]
-               for m in ["RW", "CARRY", "RIDGE", "GBM", "COMBO"])
-    assert beat == 4
-
-
-def test_data_provenance_two_independent_sources_agree():
+def test_data_provenance_two_independent_sources_agree(spot):
     """EconData export against the SARB Web API pull."""
-    rows = []
-    with open(RAW / "econdata_excx135.csv", encoding="utf-8-sig") as fh:
-        for line in fh:
-            parts = line.rstrip("\n").split(",")
-            if len(parts) >= 2 and parts[0][:4].isdigit() and parts[1].strip():
-                rows.append((parts[0].strip(), float(parts[1])))
-    ecd = pd.DataFrame(rows, columns=["date", "econdata"])
-    ecd["date"] = pd.to_datetime(ecd["date"])
     api = pd.read_csv(RAW / "usdzar.csv", parse_dates=["date"]).rename(
         columns={"value": "api"})
-    m = ecd.merge(api, on="date")
+    m = spot.merge(api, on="date")
     assert len(m) > 9000
-    assert (m["econdata"] - m["api"]).abs().max() < 1e-9
+    assert (m["px"] - m["api"]).abs().max() < 1e-9
