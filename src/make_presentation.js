@@ -14,6 +14,7 @@ const path = require("path");
 const FIG = path.join(__dirname, "..", "figures");
 const SFIG = path.join(FIG, "presentation");
 const MET = require(path.join(__dirname, "..", "data", "processed", "metrics.json"));
+const VAL = require(path.join(__dirname, "..", "data", "processed", "validation_metrics.json"));
 
 // three content colours plus neutrals
 const NAVY = "0E2A3B";    // primary / dark slides
@@ -318,9 +319,11 @@ function appx(letter, title) {
     w: 7.6, h: 3.38 });
   s.addText([
     { text: "Frozen on the 2015 to 2020 validation era:", options: { bold: true, breakLine: true } },
-    { text: "ridge on the compact feature set, no intercept", options: { breakLine: true } },
-    { text: "decay 0.97 on past errors", options: { breakLine: true } },
-    { text: "sharpness 2", options: { breakLine: true } },
+    { text: "ridge on the " + (VAL.chosen_config.ridge.startsWith("RIDGE_f") ? "full" : "compact")
+      + " feature set, " + (VAL.chosen_config.ridge.endsWith("0") ? "no" : "with") + " intercept",
+      options: { breakLine: true } },
+    { text: "decay " + VAL.chosen_config.delta + " on past errors", options: { breakLine: true } },
+    { text: "sharpness " + VAL.chosen_config.theta, options: { breakLine: true } },
     { text: "window of 156 resolved origins", options: {} },
   ], { x: 8.5, y: 1.6, w: 4.3, h: 3.2, fontFace: F, fontSize: 17, color: INK,
     bullet: true, paraSpaceAfter: 10, margin: 0 });
@@ -335,7 +338,7 @@ function appx(letter, title) {
   s.addShape(pres.ShapeType.roundRect, { x: M, y: 1.55, w: 5.9, h: 4.4,
     rectRadius: 0.1, fill: { color: PALE }, line: { color: RULE } });
   sectionHead(s, "What we ran", 0.95, 1.8, 5.2);
-  s.addText("HistGradientBoosting, max depth 2, learning rate 0.05, 150 iterations, L2 regularisation 1.0, fixed seed. Identical information set, identical embargo, identical walk-forward loop as every other model.",
+  s.addText("HistGradientBoosting with a fixed seed. Once a year, purged cross-validation picks its depth, learning rate, iterations, L2 penalty and leaf size from " + VAL.gbm.grid.length + " configurations. Same information set, same embargo and same walk-forward loop as every other model.",
     { x: 0.95, y: 2.3, w: 5.2, h: 3.4, fontFace: F, fontSize: 18, color: INK,
       margin: 0, valign: "top" });
   s.addShape(pres.ShapeType.roundRect, { x: 6.85, y: 1.55, w: 5.9, h: 4.4,

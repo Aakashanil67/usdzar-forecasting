@@ -18,8 +18,8 @@ from pathlib import Path
 import pandas as pd
 
 import build_dataset
-from run_backtest import (EVAL_END, EVAL_START, combo_series, members_cached,
-                          score, select_config)
+from run_backtest import (combo_series, judged_era, members_cached, score,
+                          select_config)
 
 PROC = Path(__file__).resolve().parents[1] / "data" / "processed"
 MODELS = ["AR1_log", "AR1_level", "RW", "CARRY", "RIDGE", "GBM", "COMBO"]
@@ -29,7 +29,7 @@ def judged_rmse(log: pd.DataFrame) -> dict:
     (ridge_tag, delta, theta), _ = select_config(log)[0]
     log = log.assign(COMBO=combo_series(log, ridge_tag, delta, theta)[0])
     log = log.rename(columns={ridge_tag: "RIDGE"})
-    res = score(log, MODELS, EVAL_START, EVAL_END)
+    res = score(judged_era(log), MODELS)
     return dict(chosen=dict(ridge=ridge_tag, delta=delta, theta=theta),
                 rmse={m: res[m]["rmse"] for m in MODELS})
 
@@ -38,8 +38,8 @@ def main() -> None:
     base = pd.read_csv(PROC / "weekly.csv", parse_dates=["friday", "target_date"])
     late = build_dataset.build(extra_lag_days=7)
     out = {"issuance": "Friday 17:00 Africa/Johannesburg",
-           "base": judged_rmse(members_cached(base)),
-           "extra_week": judged_rmse(members_cached(late, "members_cache_lag7"))}
+           "base": judged_rmse(members_cached(base)[0]),
+           "extra_week": judged_rmse(members_cached(late, "members_cache_lag7")[0])}
     out["extra_week_minus_base"] = {
         m: out["extra_week"]["rmse"][m] - out["base"]["rmse"][m] for m in MODELS}
     with open(PROC / "timing_sensitivity.json", "w") as fh:

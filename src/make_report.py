@@ -20,6 +20,14 @@ REP.mkdir(exist_ok=True)
 
 MET = json.load(open(PROC / "metrics.json"))
 VAL = json.load(open(PROC / "validation_metrics.json"))
+RIDGE_SET = "full" if VAL["chosen_config"]["ridge"].startswith("RIDGE_f") else "compact"
+PREDICTORS = {
+    "compact": "carry differential, four-week returns on gold, platinum and "
+               "the broad dollar, and the VIX z-score",
+    "full": "carry differential and its four-week change, four-week returns "
+            "on gold, platinum, Brent, the broad dollar and the rand, the "
+            "twelve-week rand return, the VIX z-score and its four-week "
+            "change, and the gap to the moving average"}[RIDGE_SET]
 
 TEAM = ["Team: Spurious Decision",
         "Aakash Anil and Stefan von der Heyden",
@@ -54,6 +62,11 @@ def _ratio(name):
     return h / w
 
 
+def long_date(iso):
+    d = dt.date.fromisoformat(iso)
+    return f"{d.day} {d:%B %Y}"
+
+
 def fmt(x, nd=4):
     return f"{x:.{nd}f}"
 
@@ -65,7 +78,7 @@ def results_table():
     order = [("AR1_log", "AR(1) baseline (log level)"),
              ("AR1_level", "AR(1) robustness (level)"),
              ("RW", "Random walk"), ("CARRY", "Carry / forward rate"),
-             ("RIDGE", "Ridge (compact, frozen)"),
+             ("RIDGE", f"Ridge ({RIDGE_SET} set, frozen)"),
              ("GBM", "Gradient boosting"), ("COMBO", "Combination (ours)")]
     for key, nice in order:
         m = MET[key]
@@ -103,6 +116,7 @@ def main():
     gain = 100 * (1 - combo / base)
     gbm = 100 * (MET["GBM"]["rmse"] / base - 1)
     cfg = VAL["chosen_config"]
+    vw = VAL["validation_window"]
 
     # ---------------- title ----------------
     E.append(Spacer(1, 3 * cm))
@@ -238,10 +252,9 @@ def main():
     E.append(para(
         f"AR(1) with intercept on the weekly log USDZAR level, re-estimated by "
         f"OLS on an expanding window from 1999 at every origin and iterated "
-        f"four steps ahead. We also run the version in raw levels. The official "
-        f"comparison uses whichever variant scores the lower RMSE in the judged "
-        f"window, which is the log version at {fmt(base)}, so we are never "
-        f"beating the weaker of the two. Economically, an estimated persistence "
+        f"four steps ahead. Its judged-window RMSE is {fmt(base)}. The log "
+        f"version is the benchmark in every comparison. The same model in raw "
+        f"levels appears as a variant only. Economically, an estimated persistence "
         f"below one drags each forecast toward the implied long-run mean, and "
         f"section 1 gives the arithmetic of why that is expensive here. As a "
         f"single illustration, at the origin of the worked example in section 6, "
@@ -258,19 +271,23 @@ def main():
         "T-bill gap scaled to 28 days. Uncovered parity fails empirically, "
         "which is why the carry trade has paid for decades, so we treat this as "
         "one informative view rather than a truth. <b>Ridge regression.</b> The "
-        "four-week log return regressed on the compact predictor set: carry "
-        "differential, four-week returns on gold, platinum and the broad "
-        "dollar, and the VIX z-score. Predictors are standardised within each "
-        "training window and the penalty is chosen by time-ordered "
-        "cross-validation inside that window. We fit no intercept, which "
+        f"four-week log return regressed on the {RIDGE_SET} predictor set: "
+        f"{PREDICTORS}. The penalty is chosen every quarter by five-fold "
+        "time-ordered cross-validation on the training rows. A training row "
+        "whose outcome date falls on or after the start of the fold it is "
+        "scored against is purged, and the predictors are standardised "
+        "inside each fold, so the scaling never uses the rows being scored. "
+        "We fit no intercept, which "
         "matters: under heavy shrinkage the predicted return goes to zero and "
         "the model collapses to the random walk instead of drifting toward a "
         "stale average, which is precisely the failure mode of the AR(1). "
         "Training rows are restricted to origins whose 28-day outcome had "
         "already resolved, so the regression never sees an unresolved target. "
-        "<b>Gradient boosting.</b> A depth-2 HistGradientBoosting comparator on "
-        "the same rows under the same discipline, included to measure what "
-        "flexibility costs at this horizon."))
+        f"<b>Gradient boosting.</b> A HistGradientBoosting comparator on the "
+        f"same rows. Once a year the same purged cross-validation picks its "
+        f"depth, learning rate, iteration count, L2 penalty and leaf size from "
+        f"{len(VAL['gbm']['grid'])} configurations. It is there to measure "
+        f"what flexibility costs at this horizon."))
     E.append(para("4.3 The combination, and the honesty protocol", H2))
     E.append(para(
         f"The headline model weights the random walk, carry and ridge by "
@@ -280,8 +297,10 @@ def main():
         f"for more, so weight migrates toward whatever suits the current "
         f"regime. Every free choice in that sentence, meaning the ridge feature "
         f"set, the intercept decision, the decay and the sharpness, was "
-        f"selected on a 2015 to 2020 validation era of 313 origins whose "
-        f"targets all resolve before 2021, and then frozen. The judged window "
+        f"selected on {VAL['validation_era']['COMBO']['n']} validation origins "
+        f"from {long_date(vw['first_origin'])} to {long_date(vw['last_origin'])}, "
+        f"and then frozen. The last of them is the final Friday whose target, "
+        f"{long_date(vw['last_target'])}, falls before 2021. The judged window "
         f"was never used to make a modelling decision, and "
         f"validation_metrics.json in the submission carries the full search "
         f"grid. Weights for the 2021 forecasts were warmed up on 2013 to 2020 "

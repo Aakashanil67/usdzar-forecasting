@@ -4,48 +4,48 @@
       "AR1_log": 0.0,
       "RW": 1.231,
       "CARRY": 0.305,
-      "RIDGE": 0.996,
-      "GBM": -2.417,
-      "COMBO": 0.735
+      "RIDGE": 1.117,
+      "GBM": -0.911,
+      "COMBO": 0.758
     },
     "RW": {
       "AR1_log": -1.231,
       "RW": 0.0,
       "CARRY": -0.144,
-      "RIDGE": -1.906,
-      "GBM": -2.51,
-      "COMBO": 0.008
+      "RIDGE": -0.422,
+      "GBM": -1.095,
+      "COMBO": 0.042
     },
     "CARRY": {
       "AR1_log": -0.305,
       "RW": 0.144,
       "CARRY": 0.0,
-      "RIDGE": 0.041,
-      "GBM": -2.382,
-      "COMBO": 0.222
+      "RIDGE": 0.081,
+      "GBM": -1.031,
+      "COMBO": 0.235
     },
     "RIDGE": {
-      "AR1_log": -0.996,
-      "RW": 1.906,
-      "CARRY": -0.041,
+      "AR1_log": -1.117,
+      "RW": 0.422,
+      "CARRY": -0.081,
       "RIDGE": 0.0,
-      "GBM": -2.483,
-      "COMBO": 0.322
+      "GBM": -1.092,
+      "COMBO": 0.207
     },
     "GBM": {
-      "AR1_log": 2.417,
-      "RW": 2.51,
-      "CARRY": 2.382,
-      "RIDGE": 2.483,
+      "AR1_log": 0.911,
+      "RW": 1.095,
+      "CARRY": 1.031,
+      "RIDGE": 1.092,
       "GBM": 0.0,
-      "COMBO": 2.487
+      "COMBO": 1.108
     },
     "COMBO": {
-      "AR1_log": -0.735,
-      "RW": -0.008,
-      "CARRY": -0.222,
-      "RIDGE": -0.322,
-      "GBM": -2.487,
+      "AR1_log": -0.758,
+      "RW": -0.042,
+      "CARRY": -0.235,
+      "RIDGE": -0.207,
+      "GBM": -1.108,
       "COMBO": 0.0
     }
   },
@@ -54,69 +54,69 @@
       "AR1_log": 1.0,
       "RW": 0.2181,
       "CARRY": 0.7601,
-      "RIDGE": 0.3191,
-      "GBM": 0.0156,
-      "COMBO": 0.4626
+      "RIDGE": 0.264,
+      "GBM": 0.3625,
+      "COMBO": 0.4487
     },
     "RW": {
       "AR1_log": 0.2181,
       "RW": 1.0,
       "CARRY": 0.8855,
-      "RIDGE": 0.0567,
-      "GBM": 0.0121,
-      "COMBO": 0.9939
+      "RIDGE": 0.673,
+      "GBM": 0.2734,
+      "COMBO": 0.9665
     },
     "CARRY": {
       "AR1_log": 0.7601,
       "RW": 0.8855,
       "CARRY": 1.0,
-      "RIDGE": 0.9671,
-      "GBM": 0.0172,
-      "COMBO": 0.8246
+      "RIDGE": 0.9358,
+      "GBM": 0.3024,
+      "COMBO": 0.8143
     },
     "RIDGE": {
-      "AR1_log": 0.3191,
-      "RW": 0.0567,
-      "CARRY": 0.9671,
+      "AR1_log": 0.264,
+      "RW": 0.673,
+      "CARRY": 0.9358,
       "RIDGE": 1.0,
-      "GBM": 0.013,
-      "COMBO": 0.7476
+      "GBM": 0.275,
+      "COMBO": 0.8357
     },
     "GBM": {
-      "AR1_log": 0.0156,
-      "RW": 0.0121,
-      "CARRY": 0.0172,
-      "RIDGE": 0.013,
+      "AR1_log": 0.3625,
+      "RW": 0.2734,
+      "CARRY": 0.3024,
+      "RIDGE": 0.275,
       "GBM": 1.0,
-      "COMBO": 0.0129
+      "COMBO": 0.2677
     },
     "COMBO": {
-      "AR1_log": 0.4626,
-      "RW": 0.9939,
-      "CARRY": 0.8246,
-      "RIDGE": 0.7476,
-      "GBM": 0.0129,
+      "AR1_log": 0.4487,
+      "RW": 0.9665,
+      "CARRY": 0.8143,
+      "RIDGE": 0.8357,
+      "GBM": 0.2677,
       "COMBO": 1.0
     }
   },
   "dm_note": "Row model against column model, squared-error loss, Newey-West variance at lag 3. Negative statistic means the ROW model is more accurate. Two-sided p-values.",
   "power_analysis": {
     "n_origins": 261,
-    "mean_loss_differential": -0.002694886307601238,
-    "newey_west_sd_per_obs": 0.05927072094978402,
-    "dm_statistic": -0.735,
-    "dm_pvalue": 0.4626,
-    "observed_rmse_improvement_pct": 0.427,
-    "origins_needed_for_80pct_power": 3797,
-    "years_of_weekly_origins_needed": 73.0,
-    "minimum_detectable_rmse_improvement_pct": 1.64,
-    "interpretation": "With 261 overlapping origins, the smallest RMSE improvement detectable at 5% with 80% power is about 1.64%. We observed 0.43%, which is roughly 4x too small to clear that bar. Detecting an effect of the size we found would need on the order of 73 years of weekly forecasts. A non-significant result here is the expected outcome, not evidence the model does nothing."
+    "mean_loss_differential": -0.0027462665660878053,
+    "newey_west_sd_per_obs": 0.05856165810534177,
+    "dm_statistic": -0.758,
+    "dm_pvalue": 0.4487,
+    "observed_rmse_improvement_pct": 0.435,
+    "origins_needed_for_80pct_power": 3569,
+    "years_of_weekly_origins_needed": 68.6,
+    "minimum_detectable_rmse_improvement_pct": 1.62,
+    "interpretation": "With 261 overlapping origins, the smallest RMSE improvement detectable at 5% with 80% power is about 1.62%. We observed 0.44%, which is roughly 4x too small to clear that bar. Detecting an effect of the size we found would need on the order of 69 years of weekly forecasts. A non-significant result here is the expected outcome, not evidence the model does nothing."
   },
   "rolling": {
     "window_weeks": 52,
     "n_complete_windows": 210,
-    "share_of_windows_ahead_of_benchmark": 0.643,
-    "best_window_ratio": 0.9801,
-    "worst_window_ratio": 1.0237
+    "share_of_windows_ahead_of_benchmark": 0.676,
+    "best_window_ratio": 0.98,
+    "worst_window_ratio": 1.0234
   }
 }

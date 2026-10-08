@@ -152,11 +152,13 @@ the fixing 28 days later. Five guarantees make that claim auditable.
 1. Information sets. Every predictor enters via a backward `merge_asof`.
 2. No publication lags. Market prices only, as above.
 3. Resolved-only training. The regressions train only on origins whose 28-day
-   outcome had already happened: `tr = tr[tr.index <= i - H]`.
+   outcome had already happened: `resolved(w, t)` keeps rows whose target date
+   is on or before the origin.
 4. Embargoed weights. Combination weights use only errors from forecasts resolved
    28 days before the current origin.
 5. Frozen configuration. The feature set, intercept choice, decay and sharpness
-   were chosen on a 2015-2020 validation era whose targets all resolve before 2021,
+   were chosen on validation origins from 2015 to 27 November 2020, the last one
+   whose target resolves before 2021,
    then frozen. The judged window never informed a modelling decision.
 
 The fifth is the one most backtests miss. Trying twenty configurations on the
@@ -170,7 +172,7 @@ them.
 
 code("""
 val = json.load(open(PROC / "validation_metrics.json"))
-print("Configuration selected on 2015-2020 and then frozen:")
+print("Configuration selected on the validation era and then frozen:")
 for k, v in val["chosen_config"].items():
     print(f"  {k:<10} {v}")
 print(f"\\nValidation era origins: {val['validation_era']['COMBO']['n']}")
@@ -186,8 +188,8 @@ md("""
 | AR(1) | The required benchmark. OLS with intercept on the weekly log level, expanding window from 1999, iterated four steps. |
 | Random walk | Forecast equals today's rate. The strongest single benchmark at this horizon. |
 | Carry | $\\hat S_{t+28d} = S_t\\left(1 + (i^{ZA}_t - i^{US}_t)\\tfrac{28}{365}\\right)$, the covered-interest-parity forward rate. |
-| Ridge | 4-week log return on the compact predictor set. Standardised in-window, penalty by time-ordered CV, no intercept, so heavy shrinkage collapses the model to the random walk instead of to a stale mean. |
-| Gradient boosting | Depth-2 comparator under identical discipline, included to measure what flexibility costs here. |
+| Ridge | 4-week log return on the predictor set chosen in validation (printed above). Scaler and ridge fitted together inside each purged CV fold, penalty re-chosen quarterly, no intercept, so heavy shrinkage collapses the model to the random walk instead of to a stale mean. |
+| Gradient boosting | Configuration picked once a year from a 12-point grid by the same purged CV, included to measure what flexibility costs here. |
 | Combination | Inverse discounted-MSE weighted average of {RW, carry, ridge}, weights from resolved past errors only. |
 
 The no-intercept choice in the ridge is worth pausing on. Under heavy shrinkage the
