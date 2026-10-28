@@ -184,7 +184,7 @@ function bullets(lines) {
 /* ================= 4. RESULT 1: cumulative error ===================== */
 {
   const s = slide("The combination gained on the AR(1) until {{cum_peak_date}}, then gave most of it back");
-  s.addImage({ path: path.join(SFIG, "cumse.png"), x: M, y: 1.5,
+  s.addImage({ path: path.join(SFIG, "cumse.png"), altText: "Cumulative squared-error gap against the AR(1)", x: M, y: 1.5,
     w: 7.6, h: 4.3 });
 
   sectionHead(s, "Reading the chart", 8.5, 1.55, 4.3);
@@ -209,7 +209,7 @@ function bullets(lines) {
 /* ================= 5. RESULT 2: accuracy ============================= */
 {
   const s = slide("The combination's RMSE is {{gain_vs_ar1}}% below the AR(1)'s and level with the random walk's");
-  s.addImage({ path: path.join(SFIG, "rmse.png"), x: M, y: 1.45,
+  s.addImage({ path: path.join(SFIG, "rmse.png"), altText: "RMSE by model", x: M, y: 1.45,
     w: 7.6, h: 4.75 });
 
   sectionHead(s, "The numbers", 8.35, 1.5, 4.5);
@@ -295,7 +295,7 @@ const hdr = (t) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { c
 }
 {
   const s = appx("B", "The combination is below the AR(1) in {{years_ahead_n}} of {{years_n}} years; {{years_behind}} goes the other way");
-  s.addImage({ path: path.join(SFIG, "yearly.png"), x: 2.4, y: 1.5,
+  s.addImage({ path: path.join(SFIG, "yearly.png"), altText: "RMSE by year", x: 2.4, y: 1.5,
     w: 8.5, h: 4.7 });
   cite(s, "Own calculation from forecast_log.csv. Five annual figures cannot show whether the pattern is stable. We have not tested why {{years_behind}} differs.");
   s.addNotes(F("The AR(1) scored {{behind_ar1}} in {{behind_year}} against {{behind_combo}} for the combination and {{behind_rw}} for the random walk. We have not tested a reason."));
@@ -309,14 +309,14 @@ const hdr = (t) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { c
     ["Timing check.", "With every non-spot predictor a week later the combination moves from {{timing_combo_base}} to {{timing_combo_extra}}."],
   ]), { x: M, y: 1.5, w: 6.6, h: 4.8, fontFace: F_, fontSize: 17, color: INK,
     bullet: true, paraSpaceAfter: 15, margin: 0 });
-  s.addImage({ path: path.join(FIG, "input_series.png"), x: 7.5, y: 1.4,
+  s.addImage({ path: path.join(FIG, "input_series.png"), altText: "Input series", x: 7.5, y: 1.4,
     w: 5.3, h: 5.15 });
   cite(s, "SARB. MARKET_RATES 1.0.0. Pretoria: SARB [producer]. Johannesburg: EconData [distributor], 2026. Verification script: src/verify_provenance.py.");
   s.addNotes("Use for any data or look-ahead-bias question.");
 }
 {
   const s = appx("D", "Adaptive weights stayed between {{w_min}} and {{w_max}}, close to equal weighting");
-  s.addImage({ path: path.join(FIG, "combination_weights.png"), x: M, y: 1.5,
+  s.addImage({ path: path.join(FIG, "combination_weights.png"), altText: "Combination weights over time", x: M, y: 1.5,
     w: 7.6, h: 3.38 });
   s.addText([{ text: F("Chosen on {{val_first}} to {{val_last}}:"),
                options: { bold: true, breakLine: true } }].concat(bullets([
@@ -351,7 +351,7 @@ const hdr = (t) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { c
 }
 {
   const s = appx("F", "Forecasts stay close to the current rate and lag the realised series");
-  s.addImage({ path: path.join(FIG, "forecasts_vs_actual.png"), x: 1.3, y: 1.45,
+  s.addImage({ path: path.join(FIG, "forecasts_vs_actual.png"), altText: "Forecasts against the realised rate", x: 1.3, y: 1.45,
     w: 10.7, h: 5.03 });
   cite(s, "Own calculation. Forecasts plotted at their target dates against EXCX135.");
   s.addNotes("Use if a judge asks to see the forecasts themselves.");
