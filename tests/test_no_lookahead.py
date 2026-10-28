@@ -46,10 +46,6 @@ def test_horizon_is_exactly_28_days_everywhere(log):
     assert set((log.target_date - log.origin).dt.days) == {H_DAYS}
 
 
-def test_target_always_strictly_after_origin(log):
-    assert (log.target_date > log.origin).all()
-
-
 def test_expected_number_of_origins_in_judged_window(log):
     assert len(log) == N_EXPECTED
     assert str(log.origin.min().date()) == "2021-01-01"
@@ -62,8 +58,8 @@ def test_no_missing_forecasts(log):
 
 # ------------------------------------------------------------- no leakage
 def test_spot_equals_the_last_fixing_on_or_before_the_origin(log, spot):
-    """The single most important test. If a forecast used tomorrow's price,
-    this fails."""
+    """Re-parses the raw export without pipeline code. If spot at an origin
+    were a later fixing, this fails."""
     idx = spot["date"].values
     for _, r in log.iterrows():
         pos = np.searchsorted(idx, np.datetime64(r.origin), side="right") - 1

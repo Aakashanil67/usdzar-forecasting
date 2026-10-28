@@ -46,10 +46,8 @@ md("""
 
 Does a forecast combination beat the mandated AR(1) benchmark out of sample?
 
-This notebook walks through the analysis: the data, the models, the out-of-sample
-protocol, the results and the statistics. Everything below reads from the saved
-outputs, so it runs in seconds and refits nothing. The pipeline that produced
-them is `python src/run_all.py`.
+Everything below reads the saved outputs of `python src/run_all.py`, so it runs
+in seconds and refits nothing.
 
 | | |
 |---|---|
@@ -275,7 +273,7 @@ the AR(1) scored worse, or that it would persist in another sample.
 # ---------------------------------------------------------------- 6 results
 md("""
 ---
-## 6. Results, and an honest reading of the statistics
+## 6. Results
 """)
 
 code("""

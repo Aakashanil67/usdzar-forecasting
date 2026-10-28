@@ -202,7 +202,6 @@ def build_keys():
     ar1, combo, rw = (met[m]["rmse"] for m in ("AR1_log", "COMBO", "RW"))
     k["gain_vs_ar1"] = f(100 * (1 - combo / ar1), 2)
     k["gain_vs_rw"] = f(100 * (1 - combo / rw), 2)
-    k["combo_minus_rw_rmse"] = f(abs(combo - rw), 5)
     k["rmse_spread_rw_family"] = f(max(met[m]["rmse"] for m in RW_FAMILY)
                                    - min(met[m]["rmse"] for m in RW_FAMILY), 5)
     k["equal3_vs_combo_gap"] = f(abs(met["EQUAL3"]["rmse"] - combo), 5)
@@ -294,8 +293,6 @@ def build_keys():
     mc = diag["max_component_error_correlation"]
     k["max_err_corr"] = f(mc["value"], 5)
     k["max_err_corr_pair"] = f"{NICE[mc['pair'][0]].lower()} and {NICE[mc['pair'][1]].lower()}"
-    k["gbm_err_corr_min"] = f(min(diag["error_correlation"]["GBM"][m]
-                                  for m in ("AR1_log", "RW", "CARRY", "RIDGE")), 2)
     wo = diag["weights"]["overall"]
     k["w_min"] = f(min(v["min"] for v in wo.values()), 3)
     k["w_max"] = f(max(v["max"] for v in wo.values()), 3)
@@ -319,7 +316,6 @@ def build_keys():
     k.update(ex_origin=long_date(ex["origin"]), ex_target=long_date(ex["target_date"]),
              ex_spot=f(ex["spot"]), ex_realized=f(ex["realized"]),
              ex_carry_diff=f(ex["carry_diff"]),
-             ex_carry_scaled=f(ex["carry_diff"] * 28 / 365),
              ex_forecast_low=f(min(fc.values()), 3), ex_forecast_high=f(max(fc.values()), 3),
              ex_spread_cents=f(100 * (max(fc.values()) - min(fc.values())), 0),
              ex_move_cents=f(100 * abs(ex["realized"] - ex["spot"]), 0),
@@ -332,7 +328,6 @@ def build_keys():
         k[f"ex_err_{m.lower()}"] = sgn(ex["error"][m])
     for m, v in ex["weights"].items():
         k[f"ex_w_{m.lower()}"] = f(v, 3)
-    k["ex_worst_model"] = NICE[max(ex["error"], key=lambda m: abs(ex["error"][m]))]
     k["ex_all_too_low"] = ("Every model forecast too low"
                            if all(v < 0 for v in ex["error"].values()) else
                            "The forecasts missed in both directions")

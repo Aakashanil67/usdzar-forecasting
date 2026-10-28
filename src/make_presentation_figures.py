@@ -34,7 +34,7 @@ HIGHLIGHT = "#FFF2CC"
 EDGE = "#E6C800"
 
 plt.rcParams.update({
-    "font.family": "DejaVu Sans",   # metric-compatible stand-in for Arial
+    "font.family": "DejaVu Sans",   # ships with matplotlib; Arial is not on every machine
     "font.size": 17,
     "axes.edgecolor": "#BBBBBB",
     "axes.labelcolor": "#2D2D2D",

@@ -1,10 +1,10 @@
 # Methodology and findings
 
-This is the reference write-up: the task, the data, the models, how the out-of-sample protocol is enforced, the results, and how far they can be trusted. The short version is the [README](../README.md). A chart-led version is [`notebooks/walkthrough.ipynb`](../notebooks/walkthrough.ipynb).
+This is the full write-up. The short version is the [README](../README.md), and a chart-led version is [`notebooks/walkthrough.ipynb`](../notebooks/walkthrough.ipynb).
 
 Every number below is filled in from `data/processed/*.json` by `src/render_docs.py`, so this file cannot disagree with the pipeline's outputs. "We" is the competition entry (Aakash Anil and Stefan von der Heyden); "I" is the work done afterwards.
 
-**Summary.** Over 261 Friday origins the combination scored an RMSE of 0.5599 against 0.5624 for the mandated AR(1), 0.44 per cent lower. The difference is not statistically established (Diebold-Mariano p = 0.449; 95% interval for the mean squared-error difference -0.0099 to +0.0044). Against the random walk (RMSE 0.5600) the combination is level (p = 0.967). An equal-weight average of the same three components scored 0.5599, so adaptive weighting adds nothing measurable. All 2021 to 2025 results are exploratory (section 13).
+Over 261 Friday origins the combination scored an RMSE of 0.5599 against 0.5624 for the mandated AR(1), 0.44 per cent lower. The difference is not statistically established (Diebold-Mariano p = 0.449; 95% interval for the mean squared-error difference -0.0099 to +0.0044). Against the random walk (RMSE 0.5600) the combination is level (p = 0.967). An equal-weight average of the same three components scored 0.5599, so adaptive weighting adds nothing measurable. All 2021 to 2025 results are exploratory (section 13).
 
 **Contents**
 
@@ -102,17 +102,17 @@ The dollar index, Brent, the T-bill rate and the VIX are revised. For those four
 
 ## 4. The out-of-sample protocol
 
-**Information sets follow publication.** A predictor joins the weekly grid only once it was public by the Friday 17:00 issuance time, with the vintage then current where the series is revised. `weekly.csv` keeps, for every input, the observation date used and the moment that value became public, so the timing can be checked row by row.
+A predictor joins the weekly grid only once it was public by the Friday 17:00 issuance time, with the vintage then current where the series is revised. `weekly.csv` keeps, for every input, the observation date used and the moment that value became public, so the timing can be checked row by row.
 
-**Resolved-only training.** A row of training data counts at origin `t` only once its target date is on or before `t`, whatever the row's own origin. The helper `resolved(df, as_of)` filters on target dates, not row counts, and refuses rows without one.
+A row of training data counts at origin `t` only once its target date is on or before `t`, whatever the row's own origin. The helper `resolved(df, as_of)` filters on target dates, not row counts, and refuses rows without one.
 
-**Purged cross-validation.** Ridge penalties and the boosting configuration are chosen by five-fold time-ordered cross-validation. In each fold I drop the training rows whose target date is on or after the fold's first origin, because four-week targets overlap, so a plain time-series split trains on labels that are fixed inside the validation fold. The predictors are standardised inside each fold, so the scaler never sees the rows it is scored on.
+Ridge penalties and the boosting configuration are chosen by five-fold time-ordered cross-validation. In each fold I drop the training rows whose target date is on or after the fold's first origin, because four-week targets overlap, so a plain time-series split trains on labels that are fixed inside the validation fold. The predictors are standardised inside each fold, so the scaler never sees the rows it is scored on.
 
-**Embargoed combination weights.** Weights at origin `t` use only errors from forecasts whose targets had been fixed by `t`, which means origins at least 28 days earlier. The code asserts it.
+Combination weights at origin `t` use only errors from forecasts whose targets had been fixed by `t`, which means origins at least 28 days earlier. The code asserts it.
 
-**Selection before the judged window.** The configuration was chosen on validation origins from 2 January 2015 to 27 November 2020. The last of those has its target on 25 December 2020, before the judged window starts, and the code asserts that on target dates.
+The configuration was chosen on validation origins from 2 January 2015 to 27 November 2020. The last of those has its target on 25 December 2020, before the judged window starts, and the code asserts that on target dates.
 
-**Timing sensitivity.** The release rules involve judgement, so `timing_sensitivity.py` reruns the whole backtest, selection included, with every non-spot predictor a further week late (section 11).
+The release rules involve judgement, so `timing_sensitivity.py` reruns the whole backtest, selection included, with every non-spot predictor a further week late (section 11).
 
 ### The checks
 
@@ -211,7 +211,7 @@ Three things were chosen on the validation era: the ridge variant (feature set a
 
 The validation origins run from 2 January 2015 to 27 November 2020 (309 origins). The last target resolves on 25 December 2020. The chosen configuration is RIDGE_f0, δ = 0.97 and θ = 2, with a validation RMSE of 0.6592 for the combination, against 0.6679 for the AR(1) and 0.6593 for the random walk.
 
-Those validation scores were used to pick the configuration, so they are not independent evidence about the combination. I report them for completeness.
+Those validation scores were used to pick the configuration, so they are not independent evidence about the combination.
 
 The full grid of 24 configurations is in [`data/processed/validation_metrics.json`](../data/processed/validation_metrics.json), along with every boosting trial. The best five:
 
@@ -295,7 +295,7 @@ which is the equilibrium of the log, so it is a median-type level and not the me
 - Its mean error (forecast minus outcome) was -0.0393, against -0.0207 for the random walk and -0.0055 for the combination.
 - Squared bias is 0.49 per cent of the AR(1)'s mean squared error and 0.01 per cent of the combination's. The AR(1)'s mean squared error is 0.00275 higher than the combination's, and 55 per cent of that gap is the difference in squared bias. The remainder is variance.
 
-These are observations. The AR(1) leans downward, and the difference in squared bias accounts for 55 per cent of its excess squared error against the combination. I have not shown that this is the full explanation, or that it would persist. The rand's own path over 1 January 2021 to 26 December 2025 is one sample, and a mean-reverting model will do better in a sample where the rand reverts. The AR(1) was ahead in 2025, and I have not tested why.
+These are observations. I have not shown that the downward lean is the full explanation, or that it would persist. The rand's path from 1 January 2021 to 26 December 2025 is one sample, and a mean-reverting model will do better in a sample where the rand reverts.
 
 ---
 

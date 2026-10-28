@@ -1,8 +1,8 @@
-// make_presentation.js — SES x Codera hackathon deck.
+// make_presentation.js - the SES x Codera hackathon deck.
 //
-// Structure follows academic presentation discipline (action titles, one
-// exhibit per results slide, annotated findings, references, conclusions last)
-// with dark title and closing slides, large figures and a single accent colour.
+// Slide titles are full sentences stating the finding, and each results slide
+// carries one chart. The conclusions slide comes last so it can stay up for
+// questions.
 //
 // Every number comes from data/processed/doc_keys.json, which render_docs.py
 // writes from the saved outputs. Text is written with {{key}} placeholders and
@@ -99,7 +99,7 @@ function bullets(lines) {
 /* ================= 1. TITLE ========================================== */
 {
   const s = dark();
-  s.addText("Don't fight the random walk.\nDiscipline it.", {
+  s.addText("Forecasting the rand\none month ahead", {
     x: 0.9, y: 0.95, w: 11.5, h: 1.8, fontFace: F_, fontSize: 42, bold: true,
     color: "FFFFFF", margin: 0, lineSpacingMultiple: 1.05,
   });
@@ -171,8 +171,8 @@ function bullets(lines) {
   s.addShape(pres.ShapeType.roundRect, { x: M, y: 5.25, w: 12.1, h: 1.15,
     rectRadius: 0.08, fill: { color: NAVY }, line: { color: NAVY } });
   s.addText([
-    { text: "Nothing here is a black box. ", options: { bold: true, color: "FFFFFF" } },
-    { text: "OLS, ridge regression and a weighted average. We can derive every component by hand under questioning.", options: { color: "CADCFC" } },
+    { text: "Small enough to derive by hand. ", options: { bold: true, color: "FFFFFF" } },
+    { text: "The combination is OLS, ridge regression and a weighted average, so every component can be worked through under questioning.", options: { color: "CADCFC" } },
   ], { x: 0.95, y: 5.42, w: 11.5, h: 0.85, fontFace: F_, fontSize: 18,
     valign: "middle", margin: 0 });
   cite(s, "Data: SARB EXCX135 via EconData (MARKET_RATES 1.0.0); JIBAR, SARB; US T-bill, VIX, dollar index, Brent, FRED; platinum, NYMEX.");
@@ -185,7 +185,7 @@ function bullets(lines) {
   s.addImage({ path: path.join(SFIG, "cumse.png"), x: M, y: 1.5,
     w: 7.6, h: 4.3 });
 
-  sectionHead(s, "What to take away", 8.5, 1.55, 4.3);
+  sectionHead(s, "Reading the chart", 8.5, 1.55, 4.3);
   s.addText(bullets([
     "Cumulative squared-error gain peaked at {{cum_peak}} and ended at {{cum_final}}.",
     "The AR(1)'s implied long-run level sat below spot at {{n_below_spot}} of {{n_origins}} origins, by R{{mean_gap}} on average, and it never forecast a rise.",
@@ -210,7 +210,7 @@ function bullets(lines) {
   s.addImage({ path: path.join(SFIG, "rmse.png"), x: M, y: 1.45,
     w: 7.6, h: 4.75 });
 
-  sectionHead(s, "What to take away", 8.35, 1.5, 4.5);
+  sectionHead(s, "The numbers", 8.35, 1.5, 4.5);
   s.addText(bullets([
     "Combination {{rmse_combo}}, AR(1) {{rmse_ar1_log}}, random walk {{rmse_rw}}, over {{n_origins}} forecasts.",
     "Both prespecified intervals include zero: p = {{p_combo_ar1}} against the AR(1), {{p_combo_rw}} against the random walk.",
@@ -237,7 +237,7 @@ function bullets(lines) {
   s.addText([].concat(
     item(1, "A small gain over the AR(1).", "{{gain_vs_ar1}}% lower RMSE, not statistically established (p = {{p_combo_ar1}}). Level with the random walk (p = {{p_combo_rw}}).", false),
     item(2, "Adaptive weighting adds nothing measurable.", "Equal weights score {{rmse_equal3}}. The weights stayed between {{w_min}} and {{w_max}}.", false),
-    item(3, "The AR(1) leans downward.", "Its implied level was below spot at {{n_below_spot}} of {{n_origins}} origins. That is an observation, not shown to be the full explanation.", false),
+    item(3, "The AR(1) leans downward.", "Its implied level was below spot at {{n_below_spot}} of {{n_origins}} origins. We have not tested whether that is why it lost.", false),
     item(4, "What we do not claim.", "Significance, directional skill (the combination's {{combo_dir_acc_pct}}% accuracy equals the share of rises), or profitability. All 2021 to 2025 results are exploratory.", true),
   ), { x: M, y: 1.25, w: W, h: 4.7, fontFace: F_, fontSize: 19,
     paraSpaceAfter: 17, margin: 0 });
@@ -257,8 +257,6 @@ function bullets(lines) {
 {
   const s = slide("References");
   const refs = [
-    "Amat, C., Michalski, T. and Stoltz, G. (2018). Fundamentals and exchange rate forecastability with simple machine learning methods. Journal of International Money and Finance, 88, 1-24.",
-    "Darvas, Z. (2020). Forecasting exchange rates of major currencies with long maturity interest rates. Bruegel Working Paper 2020/02.",
     "Diebold, F.X. and Mariano, R.S. (1995). Comparing predictive accuracy. Journal of Business and Economic Statistics, 13(3), 253-263.",
     "Makridakis, S., Spiliotis, E. and Assimakopoulos, V. (2022). M5 accuracy competition: results, findings, and conclusions. International Journal of Forecasting.",
     "Meese, R. and Rogoff, K. (1983). Empirical exchange rate models of the seventies: do they fit out of sample? Journal of International Economics, 14, 3-24.",
@@ -285,7 +283,7 @@ const hdr = (t) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { c
   const rows = [T.results[0].map(hdr)];
   T.results.slice(1).forEach((r) => {
     const bold = r[0] === "Combination";
-    rows.push(r.map((c, i) => (bold ? { text: c, options: { bold: true } } : (i === 0 ? c : c))));
+    rows.push(r.map((c) => (bold ? { text: c, options: { bold: true } } : c)));
   });
   s.addTable(rows, { x: M, y: 1.5, w: W, colW: [4.3, 1.4, 1.4, 2.0, 1.1, 1.9],
     fontFace: F_, fontSize: 12, color: INK, valign: "middle",

@@ -1,10 +1,10 @@
 # Methodology and findings
 
-This is the reference write-up: the task, the data, the models, how the out-of-sample protocol is enforced, the results, and how far they can be trusted. The short version is the [README](../README.md). A chart-led version is [`notebooks/walkthrough.ipynb`](../notebooks/walkthrough.ipynb).
+This is the full write-up. The short version is the [README](../README.md), and a chart-led version is [`notebooks/walkthrough.ipynb`](../notebooks/walkthrough.ipynb).
 
 Every number below is filled in from `data/processed/*.json` by `src/render_docs.py`, so this file cannot disagree with the pipeline's outputs. "We" is the competition entry (Aakash Anil and Stefan von der Heyden); "I" is the work done afterwards.
 
-**Summary.** Over {{n_origins}} Friday origins the combination scored an RMSE of {{rmse_combo}} against {{rmse_ar1_log}} for the mandated AR(1), {{gain_vs_ar1}} per cent lower. The difference is not statistically established (Diebold-Mariano p = {{p_combo_ar1}}; 95% interval for the mean squared-error difference {{ci_combo_ar1_lo}} to {{ci_combo_ar1_hi}}). Against the random walk (RMSE {{rmse_rw}}) the combination is level (p = {{p_combo_rw}}). An equal-weight average of the same three components scored {{rmse_equal3}}, so adaptive weighting adds nothing measurable. All 2021 to 2025 results are exploratory (section 13).
+Over {{n_origins}} Friday origins the combination scored an RMSE of {{rmse_combo}} against {{rmse_ar1_log}} for the mandated AR(1), {{gain_vs_ar1}} per cent lower. The difference is not statistically established (Diebold-Mariano p = {{p_combo_ar1}}; 95% interval for the mean squared-error difference {{ci_combo_ar1_lo}} to {{ci_combo_ar1_hi}}). Against the random walk (RMSE {{rmse_rw}}) the combination is level (p = {{p_combo_rw}}). An equal-weight average of the same three components scored {{rmse_equal3}}, so adaptive weighting adds nothing measurable. All 2021 to 2025 results are exploratory (section 13).
 
 **Contents**
 
@@ -102,17 +102,17 @@ The dollar index, Brent, the T-bill rate and the VIX are revised. For those four
 
 ## 4. The out-of-sample protocol
 
-**Information sets follow publication.** A predictor joins the weekly grid only once it was public by the Friday 17:00 issuance time, with the vintage then current where the series is revised. `weekly.csv` keeps, for every input, the observation date used and the moment that value became public, so the timing can be checked row by row.
+A predictor joins the weekly grid only once it was public by the Friday 17:00 issuance time, with the vintage then current where the series is revised. `weekly.csv` keeps, for every input, the observation date used and the moment that value became public, so the timing can be checked row by row.
 
-**Resolved-only training.** A row of training data counts at origin `t` only once its target date is on or before `t`, whatever the row's own origin. The helper `resolved(df, as_of)` filters on target dates, not row counts, and refuses rows without one.
+A row of training data counts at origin `t` only once its target date is on or before `t`, whatever the row's own origin. The helper `resolved(df, as_of)` filters on target dates, not row counts, and refuses rows without one.
 
-**Purged cross-validation.** Ridge penalties and the boosting configuration are chosen by five-fold time-ordered cross-validation. In each fold I drop the training rows whose target date is on or after the fold's first origin, because four-week targets overlap, so a plain time-series split trains on labels that are fixed inside the validation fold. The predictors are standardised inside each fold, so the scaler never sees the rows it is scored on.
+Ridge penalties and the boosting configuration are chosen by five-fold time-ordered cross-validation. In each fold I drop the training rows whose target date is on or after the fold's first origin, because four-week targets overlap, so a plain time-series split trains on labels that are fixed inside the validation fold. The predictors are standardised inside each fold, so the scaler never sees the rows it is scored on.
 
-**Embargoed combination weights.** Weights at origin `t` use only errors from forecasts whose targets had been fixed by `t`, which means origins at least 28 days earlier. The code asserts it.
+Combination weights at origin `t` use only errors from forecasts whose targets had been fixed by `t`, which means origins at least 28 days earlier. The code asserts it.
 
-**Selection before the judged window.** The configuration was chosen on validation origins from {{val_first}} to {{val_last}}. The last of those has its target on {{val_last_target}}, before the judged window starts, and the code asserts that on target dates.
+The configuration was chosen on validation origins from {{val_first}} to {{val_last}}. The last of those has its target on {{val_last_target}}, before the judged window starts, and the code asserts that on target dates.
 
-**Timing sensitivity.** The release rules involve judgement, so `timing_sensitivity.py` reruns the whole backtest, selection included, with every non-spot predictor a further week late (section 11).
+The release rules involve judgement, so `timing_sensitivity.py` reruns the whole backtest, selection included, with every non-spot predictor a further week late (section 11).
 
 ### The checks
 
@@ -205,7 +205,7 @@ Three things were chosen on the validation era: the ridge variant (feature set a
 
 The validation origins run from {{val_first}} to {{val_last}} ({{val_n}} origins). The last target resolves on {{val_last_target}}. The chosen configuration is {{chosen_ridge_tag}}, δ = {{chosen_delta}} and θ = {{chosen_theta}}, with a validation RMSE of {{val_rmse_combo}} for the combination, against {{val_rmse_ar1}} for the AR(1) and {{val_rmse_rw}} for the random walk.
 
-Those validation scores were used to pick the configuration, so they are not independent evidence about the combination. I report them for completeness.
+Those validation scores were used to pick the configuration, so they are not independent evidence about the combination.
 
 The full grid of {{n_grid}} configurations is in [`data/processed/validation_metrics.json`](../data/processed/validation_metrics.json), along with every boosting trial. The best five:
 
@@ -256,7 +256,7 @@ which is the equilibrium of the log, so it is a median-type level and not the me
 - Its mean error (forecast minus outcome) was {{ar1_bias}}, against {{rw_bias}} for the random walk and {{combo_bias}} for the combination.
 - Squared bias is {{ar1_bias_share_pct}} per cent of the AR(1)'s mean squared error and {{combo_bias_share_pct}} per cent of the combination's. The AR(1)'s mean squared error is {{mse_gap}} higher than the combination's, and {{bias_share_of_gap_pct}} per cent of that gap is the difference in squared bias. The remainder is variance.
 
-These are observations. The AR(1) leans downward, and the difference in squared bias accounts for {{bias_share_of_gap_pct}} per cent of its excess squared error against the combination. I have not shown that this is the full explanation, or that it would persist. The rand's own path over {{first_origin}} to {{last_origin}} is one sample, and a mean-reverting model will do better in a sample where the rand reverts. The AR(1) was ahead in {{behind_year}}, and I have not tested why.
+These are observations. I have not shown that the downward lean is the full explanation, or that it would persist. The rand's path from {{first_origin}} to {{last_origin}} is one sample, and a mean-reverting model will do better in a sample where the rand reverts.
 
 ---
 

@@ -1,16 +1,17 @@
 """
-make_figures.py - All charts and tables for the report and deck.
-Every figure is saved to figures/ at 200 dpi with labelled axes and titles.
+make_figures.py - Charts and the summary-statistics table for the report,
+written to figures/ at 200 dpi.
 
-  rmse_by_model.png      : RMSE per model, value printed on every bar (rubric)
-  rmse_difference_ci.png : RMSE difference from RW and from AR(1), 95% CIs
-  cumulative_error_difference.png    : cumulative squared-error difference AR(1) - COMBO
-                            (rising line = COMBO winning), plus vs RW
-  forecasts_vs_actual.png      : realized USDZAR at target dates vs COMBO and AR(1)
-  input_series.png   : every input series used by the model (rubric)
-  combination_weights.png        : combination weights through time
-  rmse_by_year.png    : per-year RMSE bars, model vs AR(1) vs RW
-  table_summary_stats.csv/png : observation counts + descriptive stats
+  rmse_by_model.png                RMSE per model, value printed on each bar
+  rmse_difference_ci.png           RMSE difference from RW and from AR(1), 95% CIs
+  cumulative_error_difference.png  running squared-error difference, AR(1) and
+                                   RW against COMBO (rising = COMBO ahead)
+  forecasts_vs_actual.png          realised USDZAR at target dates, COMBO, AR(1)
+  input_series.png                 every input series, as known at issuance
+  combination_weights.png          COMBO weights through time
+  rmse_by_year.png                 RMSE by year of origin, AR(1), RW, COMBO
+  summary_statistics.png           observation counts and descriptive statistics,
+                                   also saved as data/processed/table_summary_stats.csv
 """
 import json
 from pathlib import Path
@@ -29,7 +30,7 @@ plt.rcParams.update({"figure.dpi": 200, "font.size": 9,
 
 COLORS = {"AR1_log": "#c0392b", "RW": "#7f8c8d", "CARRY": "#e67e22",
           "RIDGE": "#8e44ad", "GBM": "#2c3e50", "COMBO": "#1a7a4a"}
-NICE = {"AR1_log": "AR(1) baseline", "RW": "Random walk", "CARRY": "Carry",
+NICE = {"AR1_log": "AR(1) benchmark", "RW": "Random walk", "CARRY": "Carry",
         "RIDGE": "Ridge", "GBM": "Grad. boosting", "COMBO": "Combination",
         "AR1_level": "AR(1) on the level", "AR1_log_roll": "AR(1), 5-year window",
         "AR1_log_vc": "AR(1), mean-corrected", "RW_drift": "Random walk + drift",
@@ -48,7 +49,7 @@ def rmse_difference_dots(tests: dict) -> None:
     fig, axes = plt.subplots(1, 2, figsize=(8.6, 4.6), sharey=True, sharex=True)
     y = np.arange(len(DOT_ROWS))[::-1]
     for ax, bench, title in zip(axes, ["RW", "AR1_log"],
-                                ["vs random walk", "vs AR(1) baseline"]):
+                                ["vs random walk", "vs AR(1) benchmark"]):
         for yy, m in zip(y, DOT_ROWS):
             c = by.get((m, bench))
             if c is None:
@@ -121,7 +122,7 @@ def main() -> None:
              - (ev["COMBO"] - ev["realized"]) ** 2).cumsum()
     d_rw = ((ev["RW"] - ev["realized"]) ** 2
             - (ev["COMBO"] - ev["realized"]) ** 2).cumsum()
-    ax.plot(d_ar1, color=COLORS["COMBO"], label="vs AR(1) baseline")
+    ax.plot(d_ar1, color=COLORS["COMBO"], label="vs AR(1) benchmark")
     ax.plot(d_rw, color=COLORS["RW"], ls="--", label="vs random walk")
     ax.axhline(0, color="black", lw=0.8)
     ax.set_title("Cumulative squared-error difference (positive = combination ahead)")
@@ -131,12 +132,12 @@ def main() -> None:
     # ---- fig 3: forecasts vs realized ---------------------------------
     fig, ax = plt.subplots(figsize=(7.2, 3.8))
     ax.plot(ev["target_date"], ev["realized"], color="black", lw=1.2,
-            label="Realized USDZAR (EXCX135)")
+            label="Realised USDZAR (EXCX135)")
     ax.plot(ev["target_date"], ev["COMBO"], color=COLORS["COMBO"], lw=1,
             alpha=0.85, label="Combination forecast")
     ax.plot(ev["target_date"], ev["AR1_log"], color=COLORS["AR1_log"], lw=0.9,
             alpha=0.7, label="AR(1) forecast")
-    ax.set_title("1-month-ahead forecasts vs realized values at each target date")
+    ax.set_title("1-month-ahead forecasts vs realised values at each target date")
     ax.set_ylabel("Rand per USD"); ax.legend()
     fig.tight_layout(); fig.savefig(FIG / "forecasts_vs_actual.png"); plt.close(fig)
 
@@ -183,23 +184,13 @@ def main() -> None:
     fig.tight_layout(); fig.savefig(FIG / "rmse_by_year.png"); plt.close(fig)
 
     # ---- summary statistics table -------------------------------------
-    est = w[w.index < "2021-01-01"]; fc = w[w.index >= "2021-01-01"]
+    cols = ["spot", "carry_diff", "gold", "platinum", "brent", "usd_broad", "vix"]
+    s = w[cols]
     tbl = pd.DataFrame({
-        "obs_estimation_era(<2021)": est[["spot", "carry_diff", "gold",
-                                          "platinum", "brent", "usd_broad",
-                                          "vix"]].count(),
-        "obs_forecast_era(2021-25)": fc.loc[:"2025-12-31",
-                                            ["spot", "carry_diff", "gold",
-                                             "platinum", "brent", "usd_broad",
-                                             "vix"]].count(),
-        "mean": w[["spot", "carry_diff", "gold", "platinum", "brent",
-                   "usd_broad", "vix"]].mean().round(3),
-        "std": w[["spot", "carry_diff", "gold", "platinum", "brent",
-                  "usd_broad", "vix"]].std().round(3),
-        "min": w[["spot", "carry_diff", "gold", "platinum", "brent",
-                  "usd_broad", "vix"]].min().round(3),
-        "max": w[["spot", "carry_diff", "gold", "platinum", "brent",
-                  "usd_broad", "vix"]].max().round(3)})
+        "obs_estimation_era(<2021)": s[s.index < "2021-01-01"].count(),
+        "obs_forecast_era(2021-25)": s.loc["2021-01-01":"2025-12-31"].count(),
+        "mean": s.mean().round(3), "std": s.std().round(3),
+        "min": s.min().round(3), "max": s.max().round(3)})
     tbl.to_csv(PROC / "table_summary_stats.csv")
     fig, ax = plt.subplots(figsize=(8.6, 2.8)); ax.axis("off")
     shown = tbl.rename(columns={"obs_estimation_era(<2021)": "obs before 2021",

@@ -6,16 +6,13 @@ __pycache__/
 venv/
 .venv/
 
-# Node, only needed to rebuild the presentation. Restore with: npm install
+# Node, only needed to rebuild the presentation. Restore with: npm ci
 node_modules/
 
 # Cached intermediate for the slow backtest stage. Regenerated automatically
 # and keyed on a hash of the input data and configuration.
 data/processed/members_cache*.csv
 data/processed/members_cache*.key
-
-# Generated equation images
-docs/_equations/
 
 # OS and editor scratch
 .DS_Store

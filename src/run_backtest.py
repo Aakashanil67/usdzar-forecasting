@@ -2,11 +2,11 @@
 run_backtest.py - Walk-forward out-of-sample backtest for USDZAR, judged
 window 2021-01-01 .. 2025-12-31.
 
-Honesty protocol
-----------------
+Selection protocol
+------------------
 Every design choice with a free parameter (ridge feature set, intercept,
-combination weighting scheme) is selected ONCE on a pre-2021 VALIDATION era
-and then FROZEN. The validation era runs from 2015-01-02 to 2020-11-27, the
+combination weighting scheme) is selected once on a pre-2021 validation era
+and then frozen. The validation era runs from 2015-01-02 to 2020-11-27, the
 last origin whose 28-day target is fixed before 2021-01-01; validation_era()
 asserts this on the target dates. Nothing is tuned on 2021-2025. The 2013-2014
 period only warms up combination weights. A row counts as training data at
@@ -31,7 +31,7 @@ Models
   GBM   : HistGradientBoosting on the same rows, its configuration picked from
       GBM_GRID by the same purged CV, once a year.
   COMBO : weighted average of {RW, CARRY, RIDGE}; weights at t from
-      inverse discounted MSE of RESOLVED past forecasts only:
+      inverse discounted MSE of resolved past forecasts only:
           w_i propto (sum_k delta^age_k e_{i,k}^2)^(-theta)
       (delta, theta, ridge variant frozen on the validation era).
   Ablations of COMBO: EQUAL3 (RW, CARRY, RIDGE at 1/3 each), and RW_CARRY and
@@ -357,7 +357,7 @@ def main() -> None:
                     parse_dates=["friday", "target_date"]).reset_index(drop=True)
     log, gbm_trials = members_cached(w)
 
-    # ---------- model selection on the VALIDATION era only ----------
+    # ---------- model selection, validation era only ----------
     val_scores = {}
     grid = select_config(log)
     (ridge_tag, delta, theta), val_rmse = grid[0]

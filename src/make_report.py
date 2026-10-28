@@ -138,7 +138,7 @@ def main():
         "{{first_origin}} to {{last_origin}}, and scored the forecasts against the "
         "mandated AR(1) benchmark. Our forecast combination, an average of a "
         "random walk, a carry forecast and a shrunk ridge regression, scored an "
-        "RMSE of <b>{{rmse_combo}}</b> against <b>{{rmse_ar1_log}}</b> for the "
+        "RMSE of {{rmse_combo}} against {{rmse_ar1_log}} for the "
         "AR(1), which is {{gain_vs_ar1}} per cent lower. The difference is not "
         "statistically established. The Diebold-Mariano p-value is "
         "{{p_combo_ar1}}, and the 95% interval for the mean squared-error "
@@ -175,18 +175,17 @@ def main():
     E.append(para(
         "The brief is to forecast USDZAR (SARB series EXCX135, distributed "
         "through EconData) one month ahead, every Friday, out of sample, over "
-        "2021 to 2025, and to compare RMSE against an AR(1) model. Our reading "
-        "of it is as follows."))
+        "2021 to 2025, and to compare RMSE against an AR(1) model."))
     E.append(para(
-        "<b>Origin grid.</b> Every Friday t from {{first_origin}} to "
-        "{{last_origin}}, which gives {{n_origins}} origins. <b>Spot at t</b> is "
-        "the last EXCX135 fixing dated on or before t. <b>Target.</b> The "
-        "EXCX135 fixing 28 calendar days later, taking the last fixing on or "
-        "before that date when it falls on a holiday. The last target falls on "
+        "We read it this way. Every Friday t from {{first_origin}} to "
+        "{{last_origin}} is an origin, which gives {{n_origins}} of them. Spot at "
+        "t is the last EXCX135 fixing dated on or before t. The target is the "
+        "EXCX135 fixing 28 calendar days later, or the last fixing before that "
+        "date when it falls on a holiday. The last target falls on "
         "{{last_target}}, after the end of 2025, and {{n_targets_in_2025}} of the "
         "{{n_origins}} targets fall inside 2025. Twenty-eight days keeps origin and "
         "target on the same weekday. We did not rerun the exercise with calendar "
-        "months. <b>Information set at t.</b> Only values that were public by "
+        "months. The information set at t holds only values that were public by "
         "17:00 Johannesburg time on the Friday, each joined on its publication "
         "time, with the vintage then current for series that are revised "
         "(section 3)."))
@@ -202,8 +201,8 @@ def main():
         "series key EXCX135.B.A, {{econdata_n}} daily observations from "
         "{{econdata_first}}. The pipeline also downloads the same series from the "
         "SARB Web API under code EXCX135D, and verify_provenance.py compares the "
-        "two: <b>{{overlap_n}} overlapping observations, largest absolute "
-        "difference {{overlap_max_diff}}, {{overlap_mismatches}} mismatches</b>, "
+        "two: {{overlap_n}} overlapping observations, largest absolute "
+        "difference {{overlap_max_diff}}, {{overlap_mismatches}} mismatches, "
         "including all {{window_overlap_n}} observations in the forecast window. "
         "Citation: SARB. MARKET_RATES. Version 1.0.0. Pretoria: SARB [producer]. "
         "Johannesburg: EconData [distributor], 2026."))
@@ -329,9 +328,10 @@ def main():
                "Table 5.2. The two prespecified comparisons. DM is the "
                "Diebold-Mariano statistic on squared error with a Newey-West "
                "variance; a negative value favours the combination. The last "
-               "column shows the range of p-values over HAC lags 3, 4, 8 and an "
-               "automatic choice, which was {{auto_lag_ar1}} against the AR(1) and "
-               "{{auto_lag_rw}} against the random walk. The RMSE interval against the AR(1), holding the "
+               "column shows the range of p-values over HAC lags 3, 4, 8 and the "
+               "Andrews (1991) automatic choice, which was {{auto_lag_ar1}} "
+               "against the AR(1) and {{auto_lag_rw}} against the random walk. "
+               "The RMSE interval against the AR(1), holding the "
                "benchmark's MSE fixed, is {{rmse_ci_combo_ar1_lo}} to "
                "{{rmse_ci_combo_ar1_hi}}.")
     E += table(filled(TABLES["dm"]), [4.9, 1.8, 1.4, 1.6, 1.8, 1.4, 1.6], "Combination (prespecified)",
@@ -418,18 +418,19 @@ def main():
     # ---------------- 7. limitations ----------------
     E.append(para("7. Limitations, exploratory status and a prospective test", H1))
     E.append(para(
-        "<b>Exploratory status.</b> The window was scored repeatedly during "
-        "development and repair, benchmarks and ablations were added after "
+        "All 2021 to 2025 results are exploratory. The window was scored "
+        "repeatedly during development and repair, benchmarks and ablations were "
+        "added after "
         "results had been seen, and no new holdout was added. The two prespecified "
         "comparisons are labelled in the code and the outputs, but nothing "
-        "registered them outside the repository. <b>Not significant.</b> Neither "
+        "registered them outside the repository. Neither "
         "prespecified comparison rejects at 5 per cent, and none of the "
         "{{n_exploratory}} exploratory comparisons survives the Holm adjustment "
         "(smallest adjusted p = {{min_holm_p}})."))
     E.append(para(
-        "<b>Planning table.</b> The table gives the number of weekly origins at "
-        "which a two-sided 5 per cent test would detect an RMSE reduction fixed "
-        "in advance, with 80 per cent power. It depends on its assumptions: the "
+        "Tables 7.1 and 7.2 give the number of weekly origins at which a "
+        "two-sided 5 per cent test would detect an RMSE reduction fixed in "
+        "advance, with 80 per cent power. They depend on their assumptions: the "
         "standard deviation of the loss differential and the benchmark's MSE "
         "stay at their 2021 to 2025 values, and the effect sizes are round "
         "numbers, not a claim about what has been achieved elsewhere. Against "
@@ -448,8 +449,8 @@ def main():
     E += table(filled(TABLES["plan_rw"]), [3.0, 3.6, 4.6, 4.0], None,
                "Table 7.2. Planning table against the random walk.")
     E.append(para(
-        "<b>Prospective-holdout protocol.</b> (1) Freeze the design: record the "
-        "git commit, the chosen configuration and the raw-data snapshot date, "
+        "A prospective holdout would run in five steps. (1) Freeze the design: "
+        "record the git commit, the chosen configuration and the raw-data snapshot date, "
         "publish them before the first new origin, and change nothing afterwards "
         "except recorded bug fixes. (2) Prespecify the two comparisons, squared "
         "error, Newey-West lag 3, two-sided 5 per cent, and treat everything "
@@ -458,7 +459,7 @@ def main():
         "origin once, after its target is fixed, in a log that is only appended "
         "to. (5) Report the result whatever it is."))
     E.append(para(
-        "<b>Other limitations.</b> Overlapping four-week forecasts and the "
+        "Overlapping four-week forecasts and the "
         "overlapping cuts (the strict cut, by-year results and rolling windows) are "
         "views of the same {{n_origins}} errors, not independent checks. The "
         "release lags are partly judgement. We tested one alternative, a further "
@@ -467,23 +468,15 @@ def main():
         "boosting, which moved by {{timing_gbm_change}}. We make no claim about "
         "profitability. RMSE and trading return are different objectives."))
     E.append(para(
-        "<b>Extensions.</b> Option-implied volatility and risk reversals, since "
-        "the SARB's working paper WP/22/14 reports that information about the "
-        "distribution of rand returns improves its forecasts; Bayesian model "
-        "averaging over a wider component set; horizons of 1, 2, 8 and 12 weeks; "
-        "and density rather than point forecasts, which matter more to anyone "
-        "deciding whether to hedge."))
+        "The first extension we would try is option-implied volatility and risk "
+        "reversals, since the SARB's working paper WP/22/14 reports that "
+        "information about the distribution of rand returns improves its "
+        "forecasts. After that: Bayesian model averaging over a wider component "
+        "set, horizons of 1, 2, 8 and 12 weeks, and density rather than point "
+        "forecasts, which matter more to anyone deciding whether to hedge."))
 
-    # ---------------- 8. AI, code, reproducibility ----------------
-    E.append(para("8. Use of AI, code and reproducibility", H1))
-    E.append(para(
-        "We used Anthropic's Claude as a coding and research assistant: "
-        "drafting pipeline code, searching the forecasting literature, and "
-        "typesetting this report. The rules permit this. The modelling "
-        "decisions, the validation design and the final specification are ours, "
-        "and we chose OLS, ridge regression and weighted averages precisely so "
-        "that every component can be derived by hand under questioning. Nothing "
-        "in the pipeline is a black box to us."))
+    # ---------------- 8. reproducibility ----------------
+    E.append(para("8. Code and reproducibility", H1))
     E.append(para(
         "The full pipeline reruns end to end with one command, python "
         "src/run_all.py. By default it needs no network access, no paid data and "
@@ -497,13 +490,8 @@ def main():
     # ---------------- 9. references ----------------
     E.append(para("9. References", H1))
     for r in [
-        "Amat, C., T. Michalski and G. Stoltz (2018). Fundamentals and "
-        "exchange rate forecastability with simple machine learning methods. "
-        "Journal of International Money and Finance 88, 1-24.",
         "Andrews, D. W. K. (1991). Heteroskedasticity and autocorrelation "
         "consistent covariance matrix estimation. Econometrica 59(3).",
-        "Darvas, Z. (2020). Forecasting exchange rates of major currencies "
-        "with long maturity interest rates. Bruegel Working Paper 2020/02.",
         "Diebold, F. X. and R. S. Mariano (1995). Comparing predictive accuracy. "
         "Journal of Business and Economic Statistics 13(3), 253-263.",
         "Holm, S. (1979). A simple sequentially rejective multiple test "

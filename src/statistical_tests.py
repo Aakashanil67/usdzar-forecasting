@@ -58,7 +58,7 @@ def newey_west_var(d, lag=LAG):
     s = u @ u / n
     for k in range(1, lag + 1):
         s += 2 * (1 - k / (lag + 1)) * (u[k:] @ u[:-k]) / n
-    return s / n                       # variance OF THE MEAN
+    return s / n                       # variance of the mean, not of d
 
 
 def andrews_lag(d):
@@ -213,14 +213,13 @@ def main():
         "worst_window_ratio": round(float(ratio.max()), 4)}
 
     fig, ax = plt.subplots(figsize=(9.2, 4.4))
-    v = ratio
-    ax.fill_between(v.index, 1, v.values, where=(v.values < 1),
+    ax.fill_between(ratio.index, 1, ratio.values, where=(ratio.values < 1),
                     color=GREEN, alpha=0.30, interpolate=True,
                     label="combination ahead")
-    ax.fill_between(v.index, 1, v.values, where=(v.values >= 1),
+    ax.fill_between(ratio.index, 1, ratio.values, where=(ratio.values >= 1),
                     color="#B03A2E", alpha=0.22, interpolate=True,
                     label="benchmark ahead")
-    ax.plot(v.index, v.values, color=NAVY, lw=1.9)
+    ax.plot(ratio.index, ratio.values, color=NAVY, lw=1.9)
     ax.axhline(1, color="#444444", lw=1.2)
     ax.set_ylabel(f"{win}-week rolling RMSE ratio\n(combination / AR(1))",
                   fontsize=11)

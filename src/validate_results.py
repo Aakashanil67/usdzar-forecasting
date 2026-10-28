@@ -1,7 +1,7 @@
 """
 validate_results.py - Independent audit of the pipeline's outputs.
 
-This script deliberately does NOT import anything from the pipeline. It rebuilds
+This script imports nothing from the pipeline. It rebuilds
 the quantities from the raw files, forecast_log.csv and combo_weights.csv using
 its own code, and compares them with metrics.json, statistical_tests.json,
 diagnostics.json and the tables derived from them. Expected values are always
@@ -210,7 +210,7 @@ for k in MODELS:
 # ---------------------------------------------------------------------------
 # 7. Combination weights reconcile with the combination forecast
 # ---------------------------------------------------------------------------
-print("\n7. FIGURE 5 (combination weights)")
+print("\n7. COMBINATION WEIGHTS")
 w = pd.read_csv(PROC / "combo_weights.csv", index_col=0, parse_dates=True)
 w = w.loc[w.index.isin(log["origin"])]
 j = log.set_index("origin").loc[w.index]
@@ -276,9 +276,9 @@ for name, mine_f in own.items():
           f"max diff {diff:.2e}")
 
 # ---------------------------------------------------------------------------
-# 9. Figure 4 series panel and Table 3.1 come from real downloaded files
+# 9. The input series and Table 3.1 match the raw files
 # ---------------------------------------------------------------------------
-print("\n9. FIGURE 4 (input series) AND TABLE 3.1 (summary statistics)")
+print("\n9. INPUT SERIES AND TABLE 3.1 (summary statistics)")
 issued = pd.to_datetime(wk["issued_at"], utc=True)
 series_meta = json.load(open(RAW / "series_metadata.json"))["series"]
 for name in ["spot", "jibar3m", "ustbill3m", "gold", "platinum", "brent",
@@ -317,7 +317,7 @@ for name in ["spot", "jibar3m", "ustbill3m", "gold", "platinum", "brent",
         if d > f_date or abs(expect - plotted) > 1e-9:
             bad = f_date
             break
-    check(f"fig4 panel '{name}' matches the source file", bad is None,
+    check(f"input '{name}' matches the source file", bad is None,
           f"{'ALFRED vintages' if vint.exists() else 'raw file'}"
           if bad is None else f"mismatch at {bad.date()}")
 
