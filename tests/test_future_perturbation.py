@@ -19,8 +19,9 @@ from conftest import RAW
 
 # warm-up, validation and judged eras
 ORIGINS = ["2013-06-07", "2016-03-04", "2019-09-06", "2022-05-06", "2025-06-06"]
-MODELS = ["AR1_log", "AR1_level", "RW", "CARRY", "RIDGE_f1", "RIDGE_f0",
-          "RIDGE_c1", "RIDGE_c0", "GBM", "COMBO"]
+MODELS = ["AR1_log", "AR1_level", "AR1_log_roll", "AR1_log_vc", "RW",
+          "RW_drift", "CARRY", "RIDGE_f1", "RIDGE_f0", "RIDGE_c1", "RIDGE_c0",
+          "GBM", "COMBO", "EQUAL3", "RW_CARRY", "RW_RIDGE"]
 FEATURES = rb.FEATS_FULL + ["spot", "jibar3m", "ustbill3m", "gold", "platinum",
                             "brent", "usd_broad", "vix"]
 

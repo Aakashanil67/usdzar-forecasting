@@ -3,10 +3,10 @@ validate_results.py - Independent audit of the pipeline's outputs.
 
 This script deliberately does NOT import anything from the pipeline. It rebuilds
 the quantities from the raw files, forecast_log.csv and combo_weights.csv using
-its own code, and compares them with metrics.json, statistical_tests.json and
-the tables derived from them. Expected values are always recomputed here, never
-typed in; checks of numbers quoted in the documents belong to the document
-generators.
+its own code, and compares them with metrics.json, statistical_tests.json,
+diagnostics.json and the tables derived from them. Expected values are always
+recomputed here, never typed in; checks of numbers quoted in the documents
+belong to the document generators.
 
 Exits with status 1 if any check fails.
 
@@ -110,18 +110,25 @@ check("origins are exactly the Fridays of the judged window",
 # ---------------------------------------------------------------------------
 print("\n2. METRICS RECOMPUTED FROM THE LOG")
 MET = json.load(open(PROC / "metrics.json"))
-MODELS = ["AR1_log", "AR1_level", "RW", "CARRY", "RIDGE", "GBM", "COMBO"]
+MODELS = ["AR1_log", "AR1_level", "AR1_log_roll", "AR1_log_vc", "RW",
+          "RW_drift", "CARRY", "RIDGE", "GBM", "COMBO", "EQUAL3", "RW_CARRY",
+          "RW_RIDGE"]
 mine = {}
 for mdl in MODELS:
     e = log[mdl] - log["realized"]
+    move, call = log["realized"] - log["spot"], log[mdl] - log["spot"]
     mine[mdl] = dict(rmse=float(np.sqrt((e ** 2).mean())),
-                     mae=float(e.abs().mean()))
+                     mae=float(e.abs().mean()),
+                     dir_acc=float((np.sign(call) == np.sign(move)).mean()),
+                     up_share=float((call > 0).mean()))
     check(f"{mdl} RMSE matches metrics.json",
           close(mine[mdl]["rmse"], MET[mdl]["rmse"], 1e-9),
           f"{mine[mdl]['rmse']:.6f} vs {MET[mdl]['rmse']:.6f}")
 for mdl in MODELS:
-    check(f"{mdl} MAE matches metrics.json",
-          close(mine[mdl]["mae"], MET[mdl]["mae"], 1e-9), "")
+    check(f"{mdl} MAE, direction and up share match metrics.json",
+          all(close(mine[mdl][k], MET[mdl][k], 1e-9)
+              for k in ["mae", "dir_acc", "up_share"]),
+          f"dir {mine[mdl]['dir_acc']:.3f}, up {mine[mdl]['up_share']:.3f}")
 
 # ---------------------------------------------------------------------------
 # 3. Relative accuracy, recomputed and compared with metrics.json
@@ -131,14 +138,19 @@ base_name = MET["_baseline_used"]
 base = mine[base_name]["rmse"]
 
 
-def dm(e1, e2, lag=3):
-    """Squared-loss DM statistic and two-sided normal p, Bartlett variance."""
-    d = np.asarray(e1) ** 2 - np.asarray(e2) ** 2
+def nw_var_of_mean(d, lag):
+    """Bartlett long-run variance of d, divided by n."""
     n, u = len(d), d - d.mean()
     v = u @ u / n
     for k in range(1, lag + 1):
         v += 2 * (1 - k / (lag + 1)) * (u[k:] @ u[:-k]) / n
-    z = d.mean() / np.sqrt(v / n)
+    return v / n
+
+
+def dm(e1, e2, lag=3):
+    """Squared-loss DM statistic and two-sided normal p."""
+    d = np.asarray(e1) ** 2 - np.asarray(e2) ** 2
+    z = d.mean() / np.sqrt(nw_var_of_mean(d, lag))
     return z, 2 * (1 - 0.5 * (1 + erf(abs(z) / sqrt(2))))
 
 
@@ -154,26 +166,6 @@ check("COMBO vs RW: DM statistic and p match metrics.json",
       close(round(z, 3), MET["COMBO"]["dm_vs_rw"][0], 1e-9)
       and close(round(pv, 4), MET["COMBO"]["dm_vs_rw"][1], 1e-9),
       f"z = {z:+.3f}, p = {pv:.4f}")
-
-TESTS = json.load(open(PROC / "statistical_tests.json"))
-worst = 0.0
-for a in TESTS["dm_statistic_matrix"]:
-    for b in TESTS["dm_statistic_matrix"][a]:
-        if a != b:
-            z, pv = dm(err[a], err[b])
-            worst = max(worst, abs(round(z, 3) - TESTS["dm_statistic_matrix"][a][b]),
-                        abs(round(pv, 4) - TESTS["dm_pvalue_matrix"][a][b]))
-check("every cell of the DM matrix in statistical_tests.json reproduces",
-      worst < 1e-9, f"worst cell difference {worst:.1e}")
-
-PA = TESTS["power_analysis"]
-d = err["COMBO"] ** 2 - err[base_name] ** 2
-check("mean loss differential in statistical_tests.json",
-      close(d.mean(), PA["mean_loss_differential"], 1e-9), f"{d.mean():+.6f}")
-gain = 100 * (1 - np.sqrt((err["COMBO"] ** 2).mean() / (err[base_name] ** 2).mean()))
-check("COMBO RMSE improvement over the baseline in statistical_tests.json",
-      close(round(gain, 3), PA["observed_rmse_improvement_pct"], 1e-9),
-      f"{gain:+.4f}%")
 
 # ---------------------------------------------------------------------------
 # 4. Cumulative squared-error difference
@@ -229,6 +221,14 @@ check("weights x member forecasts reproduce COMBO exactly",
 check("weights sum to 1 at every origin",
       np.abs(w.sum(axis=1) - 1).max() < 1e-9, "")
 check("no negative weights", (w.values >= 0).all(), "")
+eq = (log["RW"] + log["CARRY"] + log["RIDGE"]) / 3
+check("EQUAL3 is the plain mean of RW, CARRY and RIDGE",
+      np.abs(eq - log["EQUAL3"]).max() < 1e-9, "")
+for abl, other in [("RW_CARRY", "CARRY"), ("RW_RIDGE", "RIDGE")]:
+    lo = np.minimum(log["RW"], log[other]) - 1e-9
+    hi = np.maximum(log["RW"], log[other]) + 1e-9
+    check(f"{abl} lies between RW and {other} at every origin",
+          ((log[abl] >= lo) & (log[abl] <= hi)).all(), "")
 
 # ---------------------------------------------------------------------------
 # 8. Baseline and carry forecasts rebuilt from weekly.csv
@@ -248,15 +248,29 @@ def ar1_four_steps(y):
     return f
 
 
-own_log, own_lvl, own_carry = [], [], []
+def ar1_mean_corrected(level):
+    """exp(4-step log AR(1) forecast + half its forecast variance), with the
+    variance from the fit's own residuals."""
+    y = np.log(level)
+    X = np.column_stack([np.ones(len(y) - 1), y[:-1]])
+    c, phi = np.linalg.lstsq(X, y[1:], rcond=None)[0]
+    s2 = ((y[1:] - c - phi * y[:-1]) ** 2).sum() / (len(y) - 3)
+    return np.exp(ar1_four_steps(y) + s2 * (1 + phi**2 + phi**4 + phi**6) / 2)
+
+
+own = {k: [] for k in ["AR1_log", "AR1_level", "CARRY", "AR1_log_roll",
+                       "AR1_log_vc", "RW_drift"]}
 for t, s_t in zip(log["origin"], log["spot"]):
     hist = px[px.friday <= t]["spot"].values
-    own_log.append(np.exp(ar1_four_steps(np.log(hist))))
-    own_lvl.append(ar1_four_steps(hist))
+    own["AR1_log"].append(np.exp(ar1_four_steps(np.log(hist))))
+    own["AR1_level"].append(ar1_four_steps(hist))
     cd = cd_by_date.loc[t]
-    own_carry.append(s_t * (1 + cd * 28 / 365) if np.isfinite(cd) else s_t)
-for name, mine_f in [("AR1_log", own_log), ("AR1_level", own_lvl),
-                     ("CARRY", own_carry)]:
+    own["CARRY"].append(s_t * (1 + cd * 28 / 365) if np.isfinite(cd) else s_t)
+    own["AR1_log_roll"].append(np.exp(ar1_four_steps(np.log(hist[-260:]))))
+    own["AR1_log_vc"].append(ar1_mean_corrected(hist))
+    weekly_change = (np.log(hist[-1]) - np.log(hist[0])) / (len(hist) - 1)
+    own["RW_drift"].append(hist[-1] * np.exp(4 * weekly_change))
+for name, mine_f in own.items():
     diff = np.abs(np.array(mine_f) - log[name].values).max()
     check(f"{name} forecast rebuilt at every origin", diff < 1e-8,
           f"max diff {diff:.2e}")
@@ -315,6 +329,122 @@ check("Table 3.1 spot mean recomputes",
 check("Table 3.1 forecast-era observation count equals the log length",
       int(stats.loc["spot", "obs_forecast_era(2021-25)"]) == len(log),
       str(int(stats.loc["spot", "obs_forecast_era(2021-25)"])))
+
+# ---------------------------------------------------------------------------
+# 10. Comparisons, Holm adjustment and the planning table
+# ---------------------------------------------------------------------------
+print("\n10. COMPARISONS AGAINST RW AND AR(1)")
+TESTS = json.load(open(PROC / "statistical_tests.json"))
+
+
+def andrews(d):
+    u = d - d.mean()
+    r = (u[1:] @ u[:-1]) / (u[:-1] @ u[:-1])
+    return int(1.1447 * (4 * r * r / ((1 - r) ** 2 * (1 + r) ** 2) * len(d)) ** (1 / 3))
+
+
+comps = TESTS["comparisons"]
+pre = {(c["model"], c["benchmark"]) for c in comps if c["role"] == "prespecified"}
+check("exactly COMBO vs AR1_log and COMBO vs RW are prespecified",
+      pre == {("COMBO", "AR1_log"), ("COMBO", "RW")}, str(sorted(pre)))
+check("every model is compared with both benchmarks",
+      {(c["model"], c["benchmark"]) for c in comps}
+      == {(m, b) for m in MODELS for b in ["RW", "AR1_log"] if m != b},
+      f"{len(comps)} comparisons")
+worst = 0.0
+for c in comps:
+    e1, e2 = err[c["model"]], err[c["benchmark"]]
+    d = e1 ** 2 - e2 ** 2
+    for key, r in c["by_lag"].items():
+        lag = andrews(d) if key == "auto" else int(key)
+        z, pv = dm(e1, e2, lag)
+        half = 1.959964 * np.sqrt(nw_var_of_mean(d, lag))
+        worst = max(worst, abs(lag - r["lag"]), abs(z - r["dm"]), abs(pv - r["p"]),
+                    abs(d.mean() - half - r["ci95"][0]),
+                    abs(d.mean() + half - r["ci95"][1]))
+    mse_b = (e2 ** 2).mean()
+    lo, hi = c["by_lag"]["3"]["ci95"]
+    worst = max(worst, abs(d.mean() - c["mean_loss_differential"]),
+                abs(np.sqrt((e1 ** 2).mean()) - np.sqrt(mse_b) - c["rmse_difference"]),
+                abs(np.sqrt(mse_b + lo) - np.sqrt(mse_b) - c["rmse_difference_ci95"][0]),
+                abs(np.sqrt(mse_b + hi) - np.sqrt(mse_b) - c["rmse_difference_ci95"][1]))
+check("DM statistic, p, CI and lag of every comparison reproduce",
+      worst < 1e-9, f"worst difference {worst:.1e}")
+for c in comps:
+    if c["role"] == "prespecified":
+        r = c["by_lag"]["3"]
+        check(f"{c['model']} vs {c['benchmark']} run at lags 3, 4, 8 and auto",
+              set(c["by_lag"]) == {"3", "4", "8", "auto"},
+              f"DM {r['dm']:+.3f}, p {r['p']:.3f}, auto lag {c['by_lag']['auto']['lag']}")
+
+# Holm, written out as the step-down procedure over unordered pairs, so that
+# RW vs AR1_log and AR1_log vs RW count once.
+fam = {frozenset((c["model"], c["benchmark"])): c["by_lag"]["3"]["p"]
+       for c in comps if c["role"] == "exploratory"}
+running, holm_p = 0.0, {}
+for i, k in enumerate(sorted(fam, key=fam.get)):
+    running = max(running, min(1.0, (len(fam) - i) * fam[k]))
+    holm_p[k] = running
+check("exploratory family size", TESTS["exploratory_family_size"] == len(fam),
+      f"{len(fam)} hypotheses")
+check("every exploratory p_holm reproduces",
+      all(close(holm_p[frozenset((c["model"], c["benchmark"]))], c["p_holm"], 1e-12)
+          for c in comps if c["role"] == "exploratory"),
+      f"smallest {min(holm_p.values()):.3f}")
+check("prespecified comparisons carry no Holm adjustment",
+      all("p_holm" not in c for c in comps if c["role"] == "prespecified"), "")
+
+for b, tab in TESTS["planning"]["vs"].items():
+    d = err["COMBO"] ** 2 - err[b] ** 2
+    sd = np.sqrt(nw_var_of_mean(d, 3) * len(d))
+    mse_b = (err[b] ** 2).mean()
+    ok = close(sd, tab["assumed_sd_loss_differential"], 1e-9)
+    for r in tab["rows"]:
+        delta = mse_b * (1 - (1 - r["rmse_reduction_pct"] / 100) ** 2)
+        ok &= int(np.ceil(((1.959964 + 0.841621) * sd / delta) ** 2)) == r["origins_needed"]
+    check(f"planning table vs {b} reproduces",
+          ok and [r["rmse_reduction_pct"] for r in tab["rows"]] == [1, 2, 5],
+          ", ".join(f"{r['rmse_reduction_pct']}%: {r['origins_needed']}"
+                    for r in tab["rows"]))
+
+# ---------------------------------------------------------------------------
+# 11. Diagnostics
+# ---------------------------------------------------------------------------
+print("\n11. DIAGNOSTICS")
+DIA = json.load(open(PROC / "diagnostics.json"))
+worst = 0.0
+for mdl in MODELS:
+    e = err[mdl]
+    a, gap = DIA["accuracy"][mdl], 100 * (log[mdl] / log["spot"] - 1)
+    worst = max(worst, abs(mine[mdl]["rmse"] - a["rmse"]), abs(mine[mdl]["mae"] - a["mae"]),
+                abs(e.mean() ** 2 - a["bias_sq"]), abs(e.var() - a["error_variance"]),
+                abs(a["bias_sq"] + a["error_variance"] - a["rmse"] ** 2),
+                abs(mine[mdl]["dir_acc"] - a["dir_acc"]),
+                abs(mine[mdl]["up_share"] - a["up_share"]),
+                abs(gap.mean() - DIA["deviation_from_spot"][mdl]["mean_pct"]),
+                abs(gap.abs().mean() - DIA["deviation_from_spot"][mdl]["mean_abs_pct"]))
+check("accuracy, bias^2 + variance and deviation from spot reproduce",
+      worst < 1e-9, f"worst difference {worst:.1e}")
+names = list(DIA["error_correlation"])
+worst = max(abs(np.corrcoef(err[a], err[b])[0, 1] - DIA["error_correlation"][a][b])
+            for a in names for b in names)
+top = max([("RW", "CARRY"), ("RW", "RIDGE"), ("CARRY", "RIDGE")],
+          key=lambda pair: np.corrcoef(err[pair[0]], err[pair[1]])[0, 1])
+check("error correlations and the largest component pair reproduce",
+      worst < 1e-9 and DIA["max_component_error_correlation"]["pair"] == list(top),
+      f"{top[0]}/{top[1]} {DIA['max_component_error_correlation']['value']:.4f}")
+worst = 0.0
+groups = [("overall", w)] + [(str(y), w[w.index.year == y])
+                             for y in sorted(set(w.index.year))]
+for label, g in groups:
+    got = DIA["weights"]["overall" if label == "overall" else "by_year"]
+    got = got if label == "overall" else got[label]
+    for mbr in ["RW", "CARRY", "RIDGE"]:
+        worst = max(worst, abs(g[mbr].min() - got[mbr]["min"]),
+                    abs(g[mbr].max() - got[mbr]["max"]),
+                    abs(g[mbr].mean() - got[mbr]["mean"]))
+check("weight min, max and mean, overall and by year, reproduce",
+      worst < 1e-12, f"{len(groups) - 1} years")
 
 # ---------------------------------------------------------------------------
 print("\n" + "=" * 78)

@@ -1,116 +1,678 @@
 {
-  "dm_statistic_matrix": {
-    "AR1_log": {
-      "AR1_log": 0.0,
-      "RW": 1.231,
-      "CARRY": 0.305,
-      "RIDGE": 1.117,
-      "GBM": -0.911,
-      "COMBO": 0.758
+  "note": "model vs benchmark, squared-error loss. mean_loss_differential is MSE(model) - MSE(benchmark), so negative favours the model. DM uses a Newey-West variance; p-values are two-sided normal. Holm adjustment uses the lag-3 p-values of the exploratory family only.",
+  "primary_lag": 3,
+  "exploratory_family_size": 21,
+  "comparisons": [
+    {
+      "model": "AR1_log",
+      "benchmark": "RW",
+      "role": "exploratory",
+      "mean_loss_differential": 0.0026830389385137147,
+      "rmse_difference": 0.002390515031202578,
+      "rmse_difference_ci95": [
+        -0.001418974156089492,
+        0.0061743722554100655
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 1.2314654728375876,
+          "p": 0.21814882250517242,
+          "ci95": [
+            -0.0015872064285511853,
+            0.006953284305578615
+          ]
+        }
+      },
+      "p_holm": 1.0
     },
-    "RW": {
-      "AR1_log": -1.231,
-      "RW": 0.0,
-      "CARRY": -0.144,
-      "RIDGE": -0.422,
-      "GBM": -1.095,
-      "COMBO": 0.042
+    {
+      "model": "AR1_level",
+      "benchmark": "RW",
+      "role": "exploratory",
+      "mean_loss_differential": 0.0032267093382078466,
+      "rmse_difference": 0.002873673571082702,
+      "rmse_difference_ci95": [
+        0.0005168622062491357,
+        0.005220657589243283
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 2.3886957648587615,
+          "p": 0.016908297534927286,
+          "ci95": [
+            0.0005791414752802952,
+            0.005874277201135398
+          ]
+        }
+      },
+      "p_holm": 0.3381659506985457
     },
-    "CARRY": {
-      "AR1_log": -0.305,
-      "RW": 0.144,
-      "CARRY": 0.0,
-      "RIDGE": 0.081,
-      "GBM": -1.031,
-      "COMBO": 0.235
+    {
+      "model": "AR1_log_roll",
+      "benchmark": "RW",
+      "role": "exploratory",
+      "mean_loss_differential": 0.014094288643114919,
+      "rmse_difference": 0.012446121278197553,
+      "rmse_difference_ci95": [
+        -0.014275669817271464,
+        0.03797496001156242
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 0.9245410591975781,
+          "p": 0.35520468433874974,
+          "ci95": [
+            -0.01578464217483015,
+            0.04397321946105999
+          ]
+        }
+      },
+      "p_holm": 1.0
     },
-    "RIDGE": {
-      "AR1_log": -1.117,
-      "RW": 0.422,
-      "CARRY": -0.081,
-      "RIDGE": 0.0,
-      "GBM": -1.092,
-      "COMBO": 0.207
+    {
+      "model": "AR1_log_vc",
+      "benchmark": "RW",
+      "role": "exploratory",
+      "mean_loss_differential": 0.0019623227683104702,
+      "rmse_difference": 0.0017493757516838793,
+      "rmse_difference_ci95": [
+        0.00042609601338594594,
+        0.0030695455747563605
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 2.590088452435717,
+          "p": 0.009595127412100002,
+          "ci95": [
+            0.0004773997423605223,
+            0.003447245794260418
+          ]
+        }
+      },
+      "p_holm": 0.20149767565410004
     },
-    "GBM": {
-      "AR1_log": 0.911,
-      "RW": 1.095,
-      "CARRY": 1.031,
-      "RIDGE": 1.092,
-      "GBM": 0.0,
-      "COMBO": 1.108
+    {
+      "model": "RW_drift",
+      "benchmark": "RW",
+      "role": "exploratory",
+      "mean_loss_differential": 0.00301256922942912,
+      "rmse_difference": 0.002683417309909064,
+      "rmse_difference_ci95": [
+        -0.008244960312569716,
+        0.013403547112112002
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 0.48482153078442314,
+          "p": 0.627802948430217,
+          "ci95": [
+            -0.009166195248368536,
+            0.015191333707226775
+          ]
+        }
+      },
+      "p_holm": 1.0
     },
-    "COMBO": {
-      "AR1_log": -0.758,
-      "RW": -0.042,
-      "CARRY": -0.235,
-      "RIDGE": -0.207,
-      "GBM": -1.108,
-      "COMBO": 0.0
+    {
+      "model": "CARRY",
+      "benchmark": "RW",
+      "role": "exploratory",
+      "mean_loss_differential": 0.0006537263877508492,
+      "rmse_difference": 0.0005833918249504855,
+      "rmse_difference_ci95": [
+        -0.007408790775528806,
+        0.008463219040767078
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 0.14402039084504162,
+          "p": 0.8854843679308193,
+          "ci95": [
+            -0.00824279290596705,
+            0.009550245681468748
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "RIDGE",
+      "benchmark": "RW",
+      "role": "exploratory",
+      "mean_loss_differential": 0.0002777138745716681,
+      "rmse_difference": 0.0002479088000194585,
+      "rmse_difference_ci95": [
+        -0.000904478967993394,
+        0.0013979310076125406
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 0.4219803151258447,
+          "p": 0.6730393857049868,
+          "ci95": [
+            -0.0010121785136518412,
+            0.0015676062627951774
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "GBM",
+      "benchmark": "RW",
+      "role": "exploratory",
+      "mean_loss_differential": 0.01649834560291865,
+      "rmse_difference": 0.014542134853598454,
+      "rmse_difference_ci95": [
+        -0.011752145495425359,
+        0.03968457892376498
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 1.0953102668919,
+          "p": 0.2733807310711618,
+          "ci95": [
+            -0.013024032136712473,
+            0.04602072334254977
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "EQUAL3",
+      "benchmark": "RW",
+      "role": "exploratory",
+      "mean_loss_differential": -8.997211191835464e-05,
+      "rmse_difference": -8.03395797988049e-05,
+      "rmse_difference_ci95": [
+        -0.0027124327166521134,
+        0.002539438023057339
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": -0.05996937883338849,
+          "p": 0.9521800229319348,
+          "ci95": [
+            -0.0030305078285525577,
+            0.0028505636047158485
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "RW_CARRY",
+      "benchmark": "RW",
+      "role": "exploratory",
+      "mean_loss_differential": -0.00010864249473808448,
+      "rmse_difference": -9.701253130034448e-05,
+      "rmse_difference_ci95": [
+        -0.00409168949448846,
+        0.003869364695968547
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": -0.04777315744966855,
+          "p": 0.9618970293745812,
+          "ci95": [
+            -0.004565860521015147,
+            0.004348575531538978
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "RW_RIDGE",
+      "benchmark": "RW",
+      "role": "exploratory",
+      "mean_loss_differential": 0.00012789308794280914,
+      "rmse_difference": 0.00011418085384995447,
+      "rmse_difference_ci95": [
+        -0.0004604628243033426,
+        0.0006882355743176305
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 0.38960212768923513,
+          "p": 0.6968307785637355,
+          "ci95": [
+            -0.0005154962326018742,
+            0.0007712824084874924
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "COMBO",
+      "benchmark": "RW",
+      "role": "prespecified",
+      "mean_loss_differential": -6.322762757409028e-05,
+      "rmse_difference": -5.64571909917877e-05,
+      "rmse_difference_ci95": [
+        -0.0026996408853301457,
+        0.002574307736448511
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": -0.04196509125945884,
+          "p": 0.9665265267283374,
+          "ci95": [
+            -0.0030162504885143035,
+            0.002889795233366123
+          ]
+        },
+        "4": {
+          "lag": 4,
+          "dm": -0.041536166546117664,
+          "p": 0.9668684609869638,
+          "ci95": [
+            -0.003046744984984323,
+            0.0029202897298361424
+          ]
+        },
+        "8": {
+          "lag": 8,
+          "dm": -0.04210911979924988,
+          "p": 0.9664117100723566,
+          "ci95": [
+            -0.003006150073861648,
+            0.0028796948187134676
+          ]
+        },
+        "auto": {
+          "lag": 11,
+          "dm": -0.04289650986649998,
+          "p": 0.9657840309145229,
+          "ci95": [
+            -0.0029521310427072316,
+            0.002825675787559051
+          ]
+        }
+      }
+    },
+    {
+      "model": "AR1_level",
+      "benchmark": "AR1_log",
+      "role": "exploratory",
+      "mean_loss_differential": 0.0005436703996941326,
+      "rmse_difference": 0.00048315853988023516,
+      "rmse_difference_ci95": [
+        -0.0023869046123814464,
+        0.0033386611628258844
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 0.33064999561914526,
+          "p": 0.7409088772543442,
+          "ci95": [
+            -0.0026789953356276316,
+            0.0037663361350158972
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "AR1_log_roll",
+      "benchmark": "AR1_log",
+      "role": "exploratory",
+      "mean_loss_differential": 0.011411249704601204,
+      "rmse_difference": 0.010055606246995086,
+      "rmse_difference_ci95": [
+        -0.014188359438405573,
+        0.03331368883314001
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 0.8232217180525102,
+          "p": 0.410381920634995,
+          "ci95": [
+            -0.015757176644668622,
+            0.03857967605387103
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "AR1_log_vc",
+      "benchmark": "AR1_log",
+      "role": "exploratory",
+      "mean_loss_differential": -0.0007207161702032446,
+      "rmse_difference": -0.0006411392795186988,
+      "rmse_difference_ci95": [
+        -0.003945481092662462,
+        0.0026438785769584694
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": -0.38162999482972726,
+          "p": 0.7027358325238224,
+          "ci95": [
+            -0.004422148885015101,
+            0.002980716544608612
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "RW",
+      "benchmark": "AR1_log",
+      "role": "exploratory",
+      "mean_loss_differential": -0.0026830389385137147,
+      "rmse_difference": -0.002390515031202467,
+      "rmse_difference_ci95": [
+        -0.006216378023322533,
+        0.0014093863113090466
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": -1.2314654728375876,
+          "p": 0.21814882250517242,
+          "ci95": [
+            -0.006953284305578615,
+            0.0015872064285511853
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "RW_drift",
+      "benchmark": "AR1_log",
+      "role": "exploratory",
+      "mean_loss_differential": 0.0003295302909154073,
+      "rmse_difference": 0.00029290227870659713,
+      "rmse_difference_ci95": [
+        -0.014288168534346779,
+        0.014505546587211371
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 0.039877901099929954,
+          "p": 0.9681904694535677,
+          "ci95": [
+            -0.015866595615642392,
+            0.016525656197473208
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "CARRY",
+      "benchmark": "AR1_log",
+      "role": "exploratory",
+      "mean_loss_differential": -0.002029312550762864,
+      "rmse_difference": -0.0018071232062519815,
+      "rmse_difference_ci95": [
+        -0.013550676274707851,
+        0.009695409008714684
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": -0.3052873830659884,
+          "p": 0.7601472844181325,
+          "ci95": [
+            -0.015057625428611696,
+            0.010999000327085968
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "RIDGE",
+      "benchmark": "AR1_log",
+      "role": "exploratory",
+      "mean_loss_differential": -0.0024053250639420464,
+      "rmse_difference": -0.0021426062311830085,
+      "rmse_difference_ci95": [
+        -0.005922161803172288,
+        0.0016116214270444074
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": -1.1169836849335146,
+          "p": 0.2640013010945115,
+          "ci95": [
+            -0.006625933294137206,
+            0.0018152831662531133
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "GBM",
+      "benchmark": "AR1_log",
+      "role": "exploratory",
+      "mean_loss_differential": 0.01381530666440493,
+      "rmse_difference": 0.012151619822395987,
+      "rmse_difference_ci95": [
+        -0.014339522591010678,
+        0.037473980902098525
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": 0.910529555175231,
+          "p": 0.3625433023417175,
+          "ci95": [
+            -0.015922886409385727,
+            0.043553499738195584
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "EQUAL3",
+      "benchmark": "AR1_log",
+      "role": "exploratory",
+      "mean_loss_differential": -0.0027730110504320684,
+      "rmse_difference": -0.002470854611001383,
+      "rmse_difference_ci95": [
+        -0.008841156101597192,
+        0.0038277802455261023
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": -0.7662493676018264,
+          "p": 0.44352793899549336,
+          "ci95": [
+            -0.00986600461133936,
+            0.004319982510475223
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "RW_CARRY",
+      "benchmark": "AR1_log",
+      "role": "exploratory",
+      "mean_loss_differential": -0.0027916814332517984,
+      "rmse_difference": -0.0024875275625028115,
+      "rmse_difference_ci95": [
+        -0.010237344880200117,
+        0.005156474321120763
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": -0.63489855453555,
+          "p": 0.5254945798718631,
+          "ci95": [
+            -0.011409743436313983,
+            0.005826380569810387
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "RW_RIDGE",
+      "benchmark": "AR1_log",
+      "role": "exploratory",
+      "mean_loss_differential": -0.0025551458505709054,
+      "rmse_difference": -0.0022763341773526236,
+      "rmse_difference_ci95": [
+        -0.0060345611527642395,
+        0.0014568430556017864
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": -1.19355437793909,
+          "p": 0.23265232905247402,
+          "ci95": [
+            -0.006751011555923732,
+            0.0016407198547819211
+          ]
+        }
+      },
+      "p_holm": 1.0
+    },
+    {
+      "model": "COMBO",
+      "benchmark": "AR1_log",
+      "role": "prespecified",
+      "mean_loss_differential": -0.0027462665660878053,
+      "rmse_difference": -0.0024469722221942547,
+      "rmse_difference_ci95": [
+        -0.008827505639861788,
+        0.0038616684727229567
+      ],
+      "by_lag": {
+        "3": {
+          "lag": 3,
+          "dm": -0.7576167687791528,
+          "p": 0.44868043852602746,
+          "ci95": [
+            -0.009850892315870748,
+            0.004358359183695138
+          ]
+        },
+        "4": {
+          "lag": 4,
+          "dm": -0.7458310014465025,
+          "p": 0.4557695100462782,
+          "ci95": [
+            -0.009963161001283532,
+            0.004470627869107921
+          ]
+        },
+        "8": {
+          "lag": 8,
+          "dm": -0.7526717005172763,
+          "p": 0.451647219657932,
+          "ci95": [
+            -0.009897569850423485,
+            0.004405036718247875
+          ]
+        },
+        "auto": {
+          "lag": 13,
+          "dm": -0.7537934330921978,
+          "p": 0.45097326779678815,
+          "ci95": [
+            -0.009886927876780553,
+            0.004394394744604943
+          ]
+        }
+      }
     }
-  },
-  "dm_pvalue_matrix": {
-    "AR1_log": {
-      "AR1_log": 1.0,
-      "RW": 0.2181,
-      "CARRY": 0.7601,
-      "RIDGE": 0.264,
-      "GBM": 0.3625,
-      "COMBO": 0.4487
-    },
-    "RW": {
-      "AR1_log": 0.2181,
-      "RW": 1.0,
-      "CARRY": 0.8855,
-      "RIDGE": 0.673,
-      "GBM": 0.2734,
-      "COMBO": 0.9665
-    },
-    "CARRY": {
-      "AR1_log": 0.7601,
-      "RW": 0.8855,
-      "CARRY": 1.0,
-      "RIDGE": 0.9358,
-      "GBM": 0.3024,
-      "COMBO": 0.8143
-    },
-    "RIDGE": {
-      "AR1_log": 0.264,
-      "RW": 0.673,
-      "CARRY": 0.9358,
-      "RIDGE": 1.0,
-      "GBM": 0.275,
-      "COMBO": 0.8357
-    },
-    "GBM": {
-      "AR1_log": 0.3625,
-      "RW": 0.2734,
-      "CARRY": 0.3024,
-      "RIDGE": 0.275,
-      "GBM": 1.0,
-      "COMBO": 0.2677
-    },
-    "COMBO": {
-      "AR1_log": 0.4487,
-      "RW": 0.9665,
-      "CARRY": 0.8143,
-      "RIDGE": 0.8357,
-      "GBM": 0.2677,
-      "COMBO": 1.0
+  ],
+  "planning": {
+    "assumptions": [
+      "two-sided 5% DM test on squared-error loss, 80% power, normal approximation",
+      "the long-run sd of the loss differential stays at its 2021-2025 value for COMBO against that benchmark (Newey-West, lag 3)",
+      "the benchmark's MSE stays at its 2021-2025 value",
+      "effect sizes are fixed in advance, not taken from the observed result"
+    ],
+    "vs": {
+      "RW": {
+        "assumed_sd_loss_differential": 0.02434103093536241,
+        "assumed_benchmark_mse": 0.3135877112260536,
+        "current_n": 261,
+        "rows": [
+          {
+            "rmse_reduction_pct": 1,
+            "mse_reduction": 0.006240395453398476,
+            "origins_needed": 120,
+            "years_of_weekly_origins": 2.3,
+            "power_at_current_n": 0.9854406850687518
+          },
+          {
+            "rmse_reduction_pct": 2,
+            "mse_reduction": 0.012418073364551748,
+            "origins_needed": 31,
+            "years_of_weekly_origins": 0.6,
+            "power_at_current_n": 0.9999999998329754
+          },
+          {
+            "rmse_reduction_pct": 5,
+            "mse_reduction": 0.03057480184454024,
+            "origins_needed": 5,
+            "years_of_weekly_origins": 0.1,
+            "power_at_current_n": 1.0
+          }
+        ]
+      },
+      "AR1_log": {
+        "assumed_sd_loss_differential": 0.05856165810534177,
+        "assumed_benchmark_mse": 0.3162707501645673,
+        "current_n": 261,
+        "rows": [
+          {
+            "rmse_reduction_pct": 1,
+            "mse_reduction": 0.006293787928274898,
+            "origins_needed": 680,
+            "years_of_weekly_origins": 13.1,
+            "power_at_current_n": 0.4115004026036431
+          },
+          {
+            "rmse_reduction_pct": 2,
+            "mse_reduction": 0.01252432170651689,
+            "origins_needed": 172,
+            "years_of_weekly_origins": 3.3,
+            "power_at_current_n": 0.9325610241362752
+          },
+          {
+            "rmse_reduction_pct": 5,
+            "mse_reduction": 0.030836398141045322,
+            "origins_needed": 29,
+            "years_of_weekly_origins": 0.5,
+            "power_at_current_n": 0.9999999999706322
+          }
+        ]
+      }
     }
-  },
-  "dm_note": "Row model against column model, squared-error loss, Newey-West variance at lag 3. Negative statistic means the ROW model is more accurate. Two-sided p-values.",
-  "power_analysis": {
-    "n_origins": 261,
-    "mean_loss_differential": -0.0027462665660878053,
-    "newey_west_sd_per_obs": 0.05856165810534177,
-    "dm_statistic": -0.758,
-    "dm_pvalue": 0.4487,
-    "observed_rmse_improvement_pct": 0.435,
-    "origins_needed_for_80pct_power": 3569,
-    "years_of_weekly_origins_needed": 68.6,
-    "minimum_detectable_rmse_improvement_pct": 1.62,
-    "interpretation": "With 261 overlapping origins, the smallest RMSE improvement detectable at 5% with 80% power is about 1.62%. We observed 0.44%, which is roughly 4x too small to clear that bar. Detecting an effect of the size we found would need on the order of 69 years of weekly forecasts. A non-significant result here is the expected outcome, not evidence the model does nothing."
   },
   "rolling": {
     "window_weeks": 52,

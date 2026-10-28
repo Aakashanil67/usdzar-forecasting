@@ -332,9 +332,10 @@ def main():
     E.append(para("Figure 5.1. RMSE by model with values printed on the bars. "
                   "The axis starts at 0.50 so that differences of this size are "
                   "visible.", SMALL))
-    E.append(img("relative_improvement.png", 14.0))
-    E.append(para("Figure 5.2. Improvement over the AR(1) baseline, per cent.",
-                  SMALL))
+    E.append(img("rmse_difference_ci.png", 15.0))
+    E.append(para("Figure 5.2. RMSE difference from the random walk and from the "
+                  "AR(1) baseline, with 95% Newey-West intervals. Filled points "
+                  "are the two prespecified comparisons.", SMALL))
     E.append(PageBreak())
     E.append(img("cumulative_error_difference.png", 15.0))
     E.append(para(
@@ -409,10 +410,7 @@ def main():
     E.append(para(
         f"The improvement is not statistically significant. The "
         f"Diebold-Mariano p-value against the baseline is "
-        f"{MET['COMBO']['dm_vs_ar1'][1]:.2f}, and with 261 overlapping "
-        f"forecasts at this signal-to-noise ratio, detecting a difference of "
-        f"this size would need an order of magnitude more independent "
-        f"observations. We claim consistency instead: the combination beats the "
+        f"{MET['COMBO']['dm_vs_ar1'][1]:.2f}. We claim consistency instead: the combination beats the "
         f"baseline in four years of five, on the full window, on the robustness "
         f"cut, and in the validation era it never saw. Consistency across "
         f"independent cuts is real evidence, but it is not significance and we "

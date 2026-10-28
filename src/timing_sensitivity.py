@@ -18,8 +18,8 @@ from pathlib import Path
 import pandas as pd
 
 import build_dataset
-from run_backtest import (combo_series, judged_era, members_cached, score,
-                          select_config)
+from run_backtest import (add_combinations, judged_era, members_cached,
+                          score, select_config)
 
 PROC = Path(__file__).resolve().parents[1] / "data" / "processed"
 MODELS = ["AR1_log", "AR1_level", "RW", "CARRY", "RIDGE", "GBM", "COMBO"]
@@ -27,7 +27,7 @@ MODELS = ["AR1_log", "AR1_level", "RW", "CARRY", "RIDGE", "GBM", "COMBO"]
 
 def judged_rmse(log: pd.DataFrame) -> dict:
     (ridge_tag, delta, theta), _ = select_config(log)[0]
-    log = log.assign(COMBO=combo_series(log, ridge_tag, delta, theta)[0])
+    log = add_combinations(log, ridge_tag, delta, theta)[0]
     log = log.rename(columns={ridge_tag: "RIDGE"})
     res = score(judged_era(log), MODELS)
     return dict(chosen=dict(ridge=ridge_tag, delta=delta, theta=theta),

@@ -17,9 +17,12 @@ Models
 ------
   AR1_log : the mandated benchmark (BASELINE). OLS AR(1) with intercept
       on the weekly log USDZAR level, expanding window from 1999, iterated
-      4 steps and exponentiated. AR1_level, the same model on the level, is
-      reported as a variant and plays no part in any comparison.
+      4 steps and exponentiated. Variants, none of which replaces it:
+      AR1_level (the same model on the level), AR1_log_roll (the last
+      AR1_ROLL_WEEKS weeks only) and AR1_log_vc (exp(f + v/2), v the 4-step
+      forecast variance implied by the residual variance of the fit at t).
   RW    : no-change forecast S_hat = S_t.
+  RW_drift : S_t * exp(4 * mean weekly log change), expanding window from 1999.
   CARRY : forward-rate tilt  S_hat = S_t * (1 + (i_ZA - i_US) * 28/365).
   RIDGE : ridge regression of the 4-week log return on financial predictors,
       as a StandardScaler + Ridge pipeline so the scaling is refitted inside
@@ -31,6 +34,8 @@ Models
       inverse discounted MSE of RESOLVED past forecasts only:
           w_i propto (sum_k delta^age_k e_{i,k}^2)^(-theta)
       (delta, theta, ridge variant frozen on the validation era).
+  Ablations of COMBO: EQUAL3 (RW, CARRY, RIDGE at 1/3 each), and RW_CARRY and
+      RW_RIDGE (the same adaptive weighting with one member dropped).
 
 Outputs: data/processed/{forecast_log.csv, combo_weights.csv, metrics.json,
 validation_metrics.json}
@@ -67,6 +72,7 @@ ALPHAS = np.logspace(-2, 4, 7)
 ALPHA_REFRESH = 13                      # re-select ridge penalty quarterly
 CV_FOLDS = 5
 GBM_REFIT_EVERY = 4
+AR1_ROLL_WEEKS = 260                    # five years, fixed before any scoring
 # 12 configurations x 5 folds is 60 fits per search. Quarterly, like the ridge
 # penalty, that would be about 3,000 fits per run; yearly it is 780.
 GBM_RETUNE_EVERY = 52
@@ -119,15 +125,36 @@ def gbm_model(k: int) -> HistGradientBoostingRegressor:
     return HistGradientBoostingRegressor(**GBM_GRID[k], random_state=42)
 
 
+def ar1_fit(y: np.ndarray) -> tuple[float, float, float]:
+    """OLS AR(1) with intercept: c, phi and the residual variance (n - 2 df)."""
+    X = np.column_stack([np.ones(len(y) - 1), y[:-1]])
+    (c, phi), rss = np.linalg.lstsq(X, y[1:], rcond=None)[:2]
+    return c, phi, float(rss[0]) / (len(y) - 3)
+
+
 def ar1_forecast(y: np.ndarray, steps: int) -> float:
     """OLS AR(1) with intercept, iterated `steps` ahead."""
-    x, z = y[:-1], y[1:]
-    X = np.column_stack([np.ones_like(x), x])
-    c, phi = np.linalg.lstsq(X, z, rcond=None)[0]
+    c, phi, _ = ar1_fit(y)
     f = y[-1]
     for _ in range(steps):
         f = c + phi * f
     return f
+
+
+def ar1_log_corrected(level: np.ndarray, steps: int) -> float:
+    """exp of the log AR(1) forecast is a median, not a mean. With Gaussian
+    shocks the mean is exp(f + v/2), v = s2 * sum_j phi^(2j) for j < steps,
+    s2 the residual variance of the same fit, so only data up to t."""
+    y = np.log(level)
+    _, phi, s2 = ar1_fit(y)
+    v = s2 * sum(phi ** (2 * j) for j in range(steps))
+    return float(np.exp(ar1_forecast(y, steps) + v / 2))
+
+
+def drift_forecast(level: np.ndarray, steps: int) -> float:
+    """Random walk with drift: the mean weekly log change up to t, carried
+    `steps` weeks forward."""
+    return float(level[-1] * np.exp(steps * np.diff(np.log(level)).mean()))
 
 
 def run_members(w: pd.DataFrame, origins=None
@@ -148,7 +175,11 @@ def run_members(w: pd.DataFrame, origins=None
         row = dict(origin=t, spot=s_t, target_date=w.at[i, "target_date"],
                    realized=w.at[i, "realized"],
                    AR1_log=float(np.exp(ar1_forecast(np.log(hist), H))),
-                   AR1_level=float(ar1_forecast(hist, H)), RW=float(s_t))
+                   AR1_level=float(ar1_forecast(hist, H)),
+                   AR1_log_roll=float(np.exp(ar1_forecast(
+                       np.log(hist[-AR1_ROLL_WEEKS:]), H))),
+                   AR1_log_vc=ar1_log_corrected(hist, H),
+                   RW=float(s_t), RW_drift=drift_forecast(hist, H))
         cd = w.at[i, "carry_diff"]
         row["CARRY"] = float(s_t * (1 + cd * 28 / 365)) if np.isfinite(cd) else row["RW"]
 
@@ -192,10 +223,9 @@ def run_members(w: pd.DataFrame, origins=None
     return pd.DataFrame(rows).set_index("origin"), trials
 
 
-def combo_series(log: pd.DataFrame, ridge_tag: str, delta: float,
+def combo_series(log: pd.DataFrame, members: list, delta: float,
                  theta: float) -> tuple[pd.Series, pd.DataFrame]:
-    """Inverse discounted-MSE weighted combination of RW, CARRY, chosen RIDGE."""
-    members = ["RW", "CARRY", ridge_tag]
+    """Inverse discounted-MSE weighted combination of the `members` columns."""
     err2 = (log[members].sub(log["realized"], axis=0) ** 2)
     dates = log.index
     out, wlog = [], []
@@ -206,7 +236,7 @@ def combo_series(log: pd.DataFrame, ridge_tag: str, delta: float,
         assert past.empty or past.index[-1] <= t - pd.Timedelta(days=28), (
             f"combination weights at {t.date()} use an unresolved error")
         if len(past) < 26:
-            wgt = np.ones(3) / 3
+            wgt = np.ones(len(members)) / len(members)
         else:
             age = np.arange(len(past))[::-1]               # 0 = most recent
             disc = (delta ** age)[:, None]
@@ -215,8 +245,19 @@ def combo_series(log: pd.DataFrame, ridge_tag: str, delta: float,
             wgt = inv / inv.sum()
         out.append(float(log.loc[t, members].values @ wgt))
         wlog.append(wgt)
-    return (pd.Series(out, index=dates, name="COMBO"),
+    return (pd.Series(out, index=dates),
             pd.DataFrame(wlog, index=dates, columns=members))
+
+
+def add_combinations(log: pd.DataFrame, ridge_tag: str, delta: float,
+                     theta: float) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """COMBO and its three ablations as new columns, plus COMBO's weights."""
+    combo, wlog = combo_series(log, ["RW", "CARRY", ridge_tag], delta, theta)
+    return log.assign(
+        COMBO=combo,
+        EQUAL3=log[["RW", "CARRY", ridge_tag]].mean(axis=1),
+        RW_CARRY=combo_series(log, ["RW", "CARRY"], delta, theta)[0],
+        RW_RIDGE=combo_series(log, ["RW", ridge_tag], delta, theta)[0]), wlog
 
 
 def forecast_at(origin, w: pd.DataFrame, ridge_tag: str, delta: float,
@@ -232,7 +273,7 @@ def forecast_at(origin, w: pd.DataFrame, ridge_tag: str, delta: float,
     assert w.at[rows[-1], "friday"] == pd.Timestamp(origin), (
         f"{origin} is not a Friday on the weekly grid")
     log, _ = run_members(w, rows)
-    log["COMBO"] = combo_series(log, ridge_tag, delta, theta)[0]
+    log = add_combinations(log, ridge_tag, delta, theta)[0]
     return log.iloc[-1].drop(["target_date", "realized"])
 
 
@@ -245,7 +286,8 @@ def score(ev: pd.DataFrame, cols) -> dict:
                       mae=float(e.abs().mean()), n=int(len(e)),
                       dir_acc=float(np.mean(
                           np.sign(ev[c] / ev["spot"] - 1)
-                          == np.sign(ev["realized"] / ev["spot"] - 1))))
+                          == np.sign(ev["realized"] / ev["spot"] - 1))),
+                      up_share=float((ev[c] > ev["spot"]).mean()))
     return res
 
 
@@ -286,7 +328,7 @@ def select_config(log: pd.DataFrame) -> list:
     for tag in ["RIDGE_f1", "RIDGE_f0", "RIDGE_c1", "RIDGE_c0"]:
         for delta in [1.0, 0.99, 0.97]:
             for theta in [1.0, 2.0]:
-                combo, _ = combo_series(log, tag, delta, theta)
+                combo, _ = combo_series(log, ["RW", "CARRY", tag], delta, theta)
                 r = score(validation_era(log.assign(COMBO=combo)),
                           ["COMBO"])["COMBO"]["rmse"]
                 grid.append(((tag, delta, theta), r))
@@ -305,6 +347,11 @@ def gbm_summary(log: pd.DataFrame, trials: pd.DataFrame) -> dict:
         judged_origins_by_config={int(k): int(v) for k, v in in_force.items()})
 
 
+MODELS = ["AR1_log", "AR1_level", "AR1_log_roll", "AR1_log_vc", "RW",
+          "RW_drift", "CARRY", "RIDGE", "GBM", "COMBO", "EQUAL3", "RW_CARRY",
+          "RW_RIDGE"]
+
+
 def main() -> None:
     w = pd.read_csv(PROC / "weekly.csv",
                     parse_dates=["friday", "target_date"]).reset_index(drop=True)
@@ -316,13 +363,14 @@ def main() -> None:
     (ridge_tag, delta, theta), val_rmse = grid[0]
     val_scores["chosen_config"] = dict(ridge=ridge_tag, delta=delta,
                                        theta=theta, val_rmse=val_rmse)
-    val = validation_era(log.assign(COMBO=combo_series(log, ridge_tag, delta, theta)[0]))
+    log, wlog = add_combinations(log, ridge_tag, delta, theta)
+    val = validation_era(log)
     val_scores["validation_window"] = dict(
         first_origin=str(val.index.min().date()),
         last_origin=str(val.index.max().date()),
         last_target=str(val["target_date"].max().date()))
     val_scores["validation_era"] = score(
-        val, ["AR1_log", "AR1_level", "RW", "CARRY", ridge_tag, "GBM", "COMBO"])
+        val, [ridge_tag if m == "RIDGE" else m for m in MODELS])
     val_scores["grid"] = [dict(ridge=c[0], delta=c[1], theta=c[2], rmse=r)
                           for c, r in grid]
     val_scores["gbm"] = gbm_summary(log, gbm_trials)
@@ -330,18 +378,15 @@ def main() -> None:
         json.dump(val_scores, fh, indent=2)
 
     # ---------- frozen model, judged era ----------
-    combo, wlog = combo_series(log, ridge_tag, delta, theta)
-    log["COMBO"] = combo
     log = log.rename(columns={ridge_tag: "RIDGE"})
     wlog.columns = ["RW", "CARRY", "RIDGE"]
     wlog.to_csv(PROC / "combo_weights.csv")
 
-    models = ["AR1_log", "AR1_level", "RW", "CARRY", "RIDGE", "GBM", "COMBO"]
     ev = judged_era(log).dropna(subset=["realized"])
-    ev[["spot", "target_date", "realized"] + models].to_csv(
+    ev[["spot", "target_date", "realized"] + MODELS].to_csv(
         PROC / "forecast_log.csv")
 
-    res = score(ev, models)
+    res = score(ev, MODELS)
     res["_baseline_used"] = BASELINE
     for mname in ["RW", "CARRY", "RIDGE", "GBM", "COMBO"]:
         stat, p, _ = dm_test((ev[mname] - ev["realized"]).values,
@@ -353,10 +398,10 @@ def main() -> None:
 
     res["_yearly"] = {y: {mname: float(np.sqrt(((
         (s := ev[ev.index.year == y])[mname] - s["realized"]) ** 2).mean()))
-        for mname in models} for y in range(2021, 2026)}
+        for mname in MODELS} for y in range(2021, 2026)}
     ev2 = ev[ev["target_date"] <= EVAL_END]
     res["_targets_within_window"] = {mname: float(np.sqrt(
-        ((ev2[mname] - ev2["realized"]) ** 2).mean())) for mname in models}
+        ((ev2[mname] - ev2["realized"]) ** 2).mean())) for mname in MODELS}
 
     with open(PROC / "metrics.json", "w") as fh:
         json.dump(res, fh, indent=2, default=str)

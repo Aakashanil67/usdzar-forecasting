@@ -122,7 +122,7 @@ def synthetic_log(n=80, seed=7):
 
 
 def weights_at(log, t):
-    return rb.combo_series(log, "R", 0.97, 2.0)[1].loc[t].values
+    return rb.combo_series(log, ["RW", "CARRY", "R"], 0.97, 2.0)[1].loc[t].values
 
 
 def test_errors_not_yet_resolved_cannot_move_the_weights():
@@ -148,7 +148,7 @@ def test_an_error_resolved_exactly_on_the_origin_does_set_the_weights():
 
 def test_weights_stay_equal_until_26_errors_have_resolved():
     log = synthetic_log()
-    w = rb.combo_series(log, "R", 0.97, 2.0)[1]
+    w = rb.combo_series(log, ["RW", "CARRY", "R"], 0.97, 2.0)[1]
     n_resolved = [(log["target_date"] <= t).sum() for t in log.index]
     early = [n < 26 for n in n_resolved]
     assert early.count(True) > 20 and early.count(False) > 20

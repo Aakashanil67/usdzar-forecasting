@@ -23,11 +23,11 @@ OUT = BASE / "figures" / "presentation"
 OUT.mkdir(parents=True, exist_ok=True)
 
 MET = json.load(open(PROC / "metrics.json"))
+TESTS = json.load(open(PROC / "statistical_tests.json"))
 LOG = pd.read_csv(PROC / "forecast_log.csv", parse_dates=["origin"])
 
 NAVY = "#0E2A3B"      # primary dark
 FOCAL = "#1A7A4A"     # our model, the focal series
-ACCENT = "#2E75B6"    # comparators
 MUTED = "#777777"     # the benchmark and axis furniture
 GREY = "#AEB6BD"
 HIGHLIGHT = "#FFF2CC"
@@ -46,45 +46,44 @@ plt.rcParams.update({
 })
 
 
-def rmse_bars():
-    """Exhibit for the accuracy slide. Focal bar in navy, benchmark in grey."""
-    order = ["AR1_log", "RW", "CARRY", "RIDGE", "GBM", "COMBO"]
-    names = ["AR(1)\nbenchmark", "Random\nwalk", "Carry", "Ridge",
-             "Gradient\nboosting", "Combination\n(ours)"]
-    vals = [MET[k]["rmse"] for k in order]
-    cols = [MUTED, GREY, ACCENT, ACCENT, GREY, FOCAL]
-
-    fig, ax = plt.subplots(figsize=(8.0, 5.0))
-    bars = ax.bar(names, vals, color=cols, width=0.66)
-    for b, v in zip(bars, vals):
-        ax.annotate(f"{v:.4f}", (b.get_x() + b.get_width() / 2, v),
-                    ha="center", va="bottom", fontsize=16, fontweight="bold",
-                    color="#2D2D2D", xytext=(0, 4), textcoords="offset points")
-
-    base = MET["AR1_log"]["rmse"]
-    combo = MET["COMBO"]["rmse"]
-
-    # benchmark reference line. Unlabelled: the AR(1) bar sits on it, and the
-    # takeaway text names it, so a label here would only collide with the bars.
-    ax.axhline(base, color=MUTED, lw=1.3, ls="--", zorder=1)
-
-    # key finding written inside the focal bar, where nothing can overlap it
-    ax.annotate(f"{100 * (1 - combo / base):.2f}%", (5, 0.5375),
-                ha="center", va="center", fontsize=15, fontweight="bold",
-                color="white", zorder=5)
-    ax.annotate("better", (5, 0.5225), ha="center", va="center",
-                fontsize=13.5, fontweight="bold", color="white", zorder=5)
-
-    ax.set_ylabel("RMSE, rand per US dollar", fontsize=16)
-    ax.set_ylim(0.50, 0.625)
-    ax.set_yticks([0.50, 0.53, 0.56, 0.59, 0.62])
-    ax.tick_params(axis="x", labelsize=13)
-    ax.tick_params(axis="y", labelsize=14)
-    ax.set_axisbelow(True)
-    ax.spines[["top", "right"]].set_visible(False)
-    ax.annotate("Axis truncated at 0.50 to make the differences visible.",
-                (0, -0.185), xycoords="axes fraction", fontsize=12.5,
-                color=MUTED, style="italic")
+def rmse_dots():
+    """Exhibit for the accuracy slide: each model's RMSE difference from the
+    random walk and from the AR(1), with 95% CIs. The two prespecified
+    comparisons are filled in the focal colour; the rest are exploratory."""
+    rows = ["COMBO", "EQUAL3", "RW_CARRY", "RW_RIDGE", "CARRY", "RIDGE", "GBM",
+            "RW", "AR1_log"]
+    names = {"COMBO": "Combination", "EQUAL3": "Equal weights", "RW_CARRY":
+             "RW + carry", "RW_RIDGE": "RW + ridge", "CARRY": "Carry",
+             "RIDGE": "Ridge", "GBM": "Gradient boosting", "RW": "Random walk",
+             "AR1_log": "AR(1)"}
+    by = {(c["model"], c["benchmark"]): c for c in TESTS["comparisons"]}
+    fig, axes = plt.subplots(1, 2, figsize=(8.0, 5.0), sharey=True, sharex=True)
+    y = np.arange(len(rows))[::-1]
+    for ax, bench, title in zip(axes, ["RW", "AR1_log"],
+                                ["vs random walk", "vs AR(1)"]):
+        for yy, m in zip(y, rows):
+            c = by.get((m, bench))
+            if c is None:
+                ax.annotate("benchmark", (0, yy), ha="center", va="center",
+                            fontsize=13, color=MUTED, style="italic",
+                            bbox=dict(fc="white", ec="none", pad=1))
+                continue
+            pre = c["role"] == "prespecified"
+            col = FOCAL if pre else GREY
+            ax.plot(c["rmse_difference_ci95"], [yy, yy], color=col,
+                    lw=3 if pre else 2.2, solid_capstyle="round", zorder=2)
+            ax.plot(c["rmse_difference"], yy, "o", ms=10 if pre else 8,
+                    mfc=col if pre else "white", mec=col, mew=2, zorder=3)
+        ax.axvline(0, color="#555555", lw=1.1, zorder=1)
+        ax.set_title(title, fontsize=16, color=NAVY)
+        ax.tick_params(axis="x", labelsize=14)
+        ax.grid(axis="y", alpha=0)
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.set_axisbelow(True)
+    axes[0].set_yticks(y)
+    axes[0].set_yticklabels([names[m] for m in rows], fontsize=15, color="#2D2D2D")
+    fig.supxlabel("RMSE difference, rand per US dollar (left = more accurate)",
+                  fontsize=14)
     fig.tight_layout()
     fig.savefig(OUT / "rmse.png", dpi=220, facecolor="white")
     plt.close(fig)
@@ -167,7 +166,7 @@ def yearly():
 
 
 def main():
-    rmse_bars()
+    rmse_dots()
     cumulative()
     yearly()
     print("slide figures written:", sorted(p.name for p in OUT.iterdir()))

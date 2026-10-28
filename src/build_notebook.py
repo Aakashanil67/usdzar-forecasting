@@ -55,7 +55,7 @@ those artefacts is `python src/run_all.py`, which takes about five minutes.
 | Horizon | 28 days ahead |
 | Our model | Combination of a random walk, a carry tilt and a shrunk ridge |
 | Result | RMSE 0.5600 against the AR(1) benchmark's 0.5624, an improvement of 0.42 per cent |
-| Significance | Not significant. Section 6 shows why it was never going to be |
+| Significance | Not significant; see section 6 |
 """)
 
 code("""
@@ -279,30 +279,26 @@ pd.DataFrame(rows).set_index("model")
 
 md("""
 Four of five models beat the benchmark. Gradient boosting, run under identical
-rules, loses by 7.5 per cent, and the pairwise DM matrix shows that is the one
-difference in the whole table reaching significance.
+rules, loses by 7.5 per cent.
 
-Our improvement carries a DM p-value of 0.47. Rather than leave that as a weakness,
-the power analysis asks what significance would have taken.
+Two comparisons were fixed in advance: the combination against the AR(1) and
+against the random walk. The rest are exploratory and carry Holm-adjusted p-values.
+The planning table asks how many weekly origins a future holdout would need to
+detect RMSE cuts of 1, 2 and 5 per cent.
 """)
 
 code("""
-pa = stats["power_analysis"]
-for k in ["n_origins", "observed_rmse_improvement_pct",
-          "minimum_detectable_rmse_improvement_pct",
-          "origins_needed_for_80pct_power", "years_of_weekly_origins_needed"]:
-    print(f"{k:<44} {pa[k]}")
-print()
-print(pa["interpretation"])
+pre = [c for c in stats["comparisons"] if c["role"] == "prespecified"]
+display(pd.DataFrame([{"comparison": f"{c['model']} vs {c['benchmark']}",
+                       "RMSE diff": round(c["rmse_difference"], 5),
+                       "DM (lag 3)": round(c["by_lag"]["3"]["dm"], 3),
+                       "p": round(c["by_lag"]["3"]["p"], 3)} for c in pre]))
+pd.DataFrame([dict(benchmark=b, **r) for b, t in stats["planning"]["vs"].items()
+              for r in t["rows"]]).round(3)
 """)
 
 md("""
-With 261 overlapping origins, the smallest RMSE improvement detectable at 5 per
-cent with 80 per cent power is about 1.64 per cent. We observed 0.42 per cent.
-Detecting an effect that size would take roughly 75 years of weekly forecasts.
-
-So a non-significant result here is the expected outcome given the sample, rather
-than evidence the model does nothing. What can honestly be claimed is consistency.
+What can honestly be claimed is consistency.
 The combination beats the benchmark in four years of five, on the full window, on a
 stricter robustness cut, and in the validation era it never saw.
 
