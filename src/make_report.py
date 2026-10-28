@@ -5,7 +5,6 @@ Prose is written with {{key}} placeholders and filled from the saved outputs by
 render_docs.fill(); tables come from render_docs.TABLES. Nothing here types a
 result by hand. Run render_docs.py (or run_all.py) first.
 """
-import datetime as dt
 import json
 from pathlib import Path
 
@@ -113,7 +112,8 @@ def main():
                             leftMargin=2 * cm, rightMargin=2 * cm,
                             topMargin=1.8 * cm, bottomMargin=1.8 * cm,
                             title="USDZAR 1-Month-Ahead Forecasting",
-                            author=", ".join(TEAM))
+                            author=", ".join(TEAM),
+                            invariant=1)       # fixed dates and document id
     E = []
 
     # ---------------- title ----------------
@@ -127,7 +127,7 @@ def main():
                   ParagraphStyle("c", parent=P, alignment=1, fontSize=11)))
     E.append(para("<br/>".join(TEAM),
                   ParagraphStyle("c2", parent=P, alignment=1, fontSize=10)))
-    E.append(para(f"Built on {dt.date.today():%d %B %Y} from the saved pipeline outputs.",
+    E.append(para("Built from the saved pipeline outputs.",
                   ParagraphStyle("c3", parent=SMALL, alignment=1)))
     E.append(PageBreak())
 

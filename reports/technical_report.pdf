@@ -254,7 +254,7 @@ endobj
 endobj
 30 0 obj
 <<
-/Author (Team: Spurious Decision, Aakash Anil and Stefan von der Heyden, Stellenbosch University) /CreationDate (D:20261028225034+02'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20261028225034+02'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+/Author (Team: Spurious Decision, Aakash Anil and Stefan von der Heyden, Stellenbosch University) /CreationDate (D:20000101000000+00'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20000101000000+00'00') /Producer (ReportLab PDF Library - \(opensource\)) 
   /Subject (\(unspecified\)) /Title (USDZAR 1-Month-Ahead Forecasting) /Trapped /False
 >>
 endobj
@@ -265,10 +265,10 @@ endobj
 endobj
 32 0 obj
 <<
-/Filter [ /ASCII85Decode /FlateDecode ] /Length 715
+/Filter [ /ASCII85Decode /FlateDecode ] /Length 697
 >>
 stream
-GasJPgN&c;&;KZP'RT(d>"&Z+;X^,&SkLLfD.@V8ac-_7;%:ACm+-+4'aC;-:5qatg=>Kcoe/"lGd2-[97XVWDPmm[LL^E:+9<``n;rUc7X[]$J0IiTNsY]5^%<2D0,HB0\=bQq8OO*nQsRZ)]3ZC`2j!rhjF^h<"7$Fi,#0?$'g=$7,`a5A>Y0b36c.T6G2`&[rJ2EL:-%f=M'&@?.h^!$8fu;c4KW@^lDCt,#qrX^T9EodS:RtdD%8Tc3ZCm[SZhD$s,G#od0QL@71>!.Go.qP@74UNGubWi#$Mc`BplmajC4e4Yip?UXie1s]![e*^!tWl>al\"4MQp0lOD't9Cl'5/'op?O[051.?RK[=0+,[Q1.uoX+O4q'qm)er[0O%Jcq6oX!WP*+KA5IAeHKM?8sh_lP`On)3iE,@6rOEN+WYWp]Fm'bg[OX:)COnV@>ZQFJ[a)EZa9+VUtpI4?<g0/+JW2F=]CjT&C!ek@:b]'D/IY2)'4'e5Hn;@%8'>IYQO%;ql'9^qE<VK-k_;*L5PN1.lgFCnb"Ba\e3Q3ickp=_J%EoG+dNUY05@\6;;AXOPT.Qs:?Fc)W29iPjKPW>jU[:9<O?^juC/#r$[G!ea)=MrF5Ul(&Z]lTPU25.&SXPHs(cI(-@LMm!hD"Q3M<<caMd4b?+^D<DkHd9DgNg9+.Yn]e*mm<[5>j=&ug?nVOMIfUAP+_U~>endstream
+GasJPbAu;j'Sc?E`EA@!X6=$9;KnoCPNcW*#%s.A7b@dCfJ9]@/T9NV@rn-&![APQMnWQu0aoJE=go^]^g.AX;[/1J]Dr_/!9,ANLe$p/5,-b]-F2OLK`.fP[Mc/b(G\:dTFl-36m)S*04=^q/1n(FLjq_gWNH/VI>8HWM:>ej&$:]J;BaAOKIAl,]T6_B5!Qben\Em.#MpnDf-fLFKITs$NM\D$QBb0<h)N0&QeD?'j;CR.TdY>QJ]Xub#LkEiPo]\8dJ,./@?bKJJ;B#:JHc`Z)QColU<#4=ZLCE.'ODq!"0I,CcO3<Ibag\P.m98rE?=kCbeiH:D9UjS?uCCU'rG/cnS&p[FKgQ6-,[H,L!d2Vh^2\NKJKA1ePYg#TqN5I:fL[W.?"DWIDRk*3!o>rESsqXE2)/Sl'rD&KK[;!p+V+`n?#B$AROLl^2$tO_kTe(VTDI1)8:%[*H90_;92mu%tpTc_1D1d:XD6HMqU6Ys1255@n06tl9QDK@r$t*0O&HF=)Mc_[u%05U^jE"&tC@>.IVsbbf\EQ8of2ieZ?"`j'dk[U/lNG]@7n&Kg]OTLOm8%4L]cGek$'!hJI+0]4Q7r,tA1Eljmuad?>Ll>iI8cbO8*m`8FnpLX=b1[Rj1]./O[uG8ll-Yc)N\g?G]`eu#ZpCR[D5bfWYdhD@)Mnt&kU]J00idb#NG~>endstream
 endobj
 33 0 obj
 <<
@@ -368,19 +368,19 @@ xref
 0001224936 00000 n 
 0001225310 00000 n 
 0001225432 00000 n 
-0001226238 00000 n 
-0001229629 00000 n 
-0001231062 00000 n 
-0001233574 00000 n 
-0001236812 00000 n 
-0001240199 00000 n 
-0001241086 00000 n 
-0001242992 00000 n 
-0001246510 00000 n 
+0001226220 00000 n 
+0001229611 00000 n 
+0001231044 00000 n 
+0001233556 00000 n 
+0001236794 00000 n 
+0001240181 00000 n 
+0001241068 00000 n 
+0001242974 00000 n 
+0001246492 00000 n 
 trailer
 <<
 /ID 
-[<182cbfc70875bd0abece4770aa64908f><182cbfc70875bd0abece4770aa64908f>]
+[<8149aa7bdb6c356827588f4c8be3af91><8149aa7bdb6c356827588f4c8be3af91>]
 % ReportLab generated PDF document -- digest (opensource)
 
 /Info 30 0 R
@@ -388,5 +388,5 @@ trailer
 /Size 42
 >>
 startxref
-1248519
+1248501
 %%EOF

@@ -3,17 +3,23 @@ build_notebook.py - Generates notebooks/walkthrough.ipynb
 
 Generated from a single source rather than hand-edited. Every number in the
 markdown is filled in from the saved outputs by render_docs.fill(), so the text
-cannot drift from the pipeline. The cells are executed with nbconvert before the file is
-written to notebooks/walkthrough.ipynb, so the committed notebook always carries
-its outputs and the file is left alone if a cell fails. Needs the nbconvert and
-ipykernel packages from requirements-lock.txt.
+cannot drift from the pipeline. The cells are executed with nbclient in a kernel launched from this
+interpreter (sys.executable), not from whichever python3 kernelspec the machine
+registers. Cell ids, timings and kernel metadata are fixed so two builds of the
+same outputs give the same bytes. The file is written only after every cell has
+run, so a failed cell leaves the committed notebook alone. Needs nbclient,
+nbformat and ipykernel from requirements-lock.txt.
 
 Run:  python src/build_notebook.py
 """
 import json
-import subprocess
 import sys
 from pathlib import Path
+
+import nbformat
+from jupyter_client import KernelManager
+from jupyter_client.kernelspec import KernelSpec, KernelSpecManager
+from nbclient import NotebookClient
 
 from render_docs import fill
 
@@ -31,13 +37,14 @@ def _lines(text):
 
 
 def md(text):
-    cells.append({"cell_type": "markdown", "metadata": {},
-                  "source": _lines(fill(text))})
+    cells.append({"cell_type": "markdown", "id": f"cell-{len(cells):02d}",
+                  "metadata": {}, "source": _lines(fill(text))})
 
 
 def code(src):
-    cells.append({"cell_type": "code", "execution_count": None,
-                  "metadata": {}, "outputs": [], "source": _lines(src)})
+    cells.append({"cell_type": "code", "id": f"cell-{len(cells):02d}",
+                  "execution_count": None, "metadata": {}, "outputs": [],
+                  "source": _lines(src)})
 
 
 # ---------------------------------------------------------------- intro
@@ -414,18 +421,30 @@ Where I would go next.
 [`reports/technical_report.pdf`](../reports/technical_report.pdf).*
 """)
 
-nb = {"cells": cells,
-      "metadata": {"kernelspec": {"display_name": "Python 3",
-                                  "language": "python", "name": "python3"},
-                   "language_info": {"name": "python", "version": "3.10"}},
-      "nbformat": 4, "nbformat_minor": 5}
+class _ThisInterpreter(KernelSpecManager):
+    """Resolves every kernel name to ipykernel run by sys.executable."""
+
+    def get_kernel_spec(self, kernel_name):
+        return KernelSpec(argv=[sys.executable, "-m", "ipykernel_launcher",
+                                "-f", "{connection_file}"],
+                          display_name="Python 3", language="python")
+
+
+nb = nbformat.reads(json.dumps({
+    "cells": cells,
+    "metadata": {"kernelspec": {"display_name": "Python 3",
+                                "language": "python", "name": "python3"}},
+    "nbformat": 4, "nbformat_minor": 5}), as_version=4)
+
+km = KernelManager(kernel_name="python3", kernel_spec_manager=_ThisInterpreter())
+NotebookClient(nb, km=km, resources={"metadata": {"path": str(NB)}},
+               record_timing=False).execute()
+
+# The kernel reports its exact patch version and the build machine's tooling;
+# keep only the language so the file does not change between machines.
+nb.metadata["language_info"] = {"name": "python"}
+nbformat.validate(nb)
 
 out = NB / "walkthrough.ipynb"
-draft = NB / "_draft.ipynb"
-draft.write_text(json.dumps(nb, indent=1), encoding="utf-8")
-try:
-    subprocess.run([sys.executable, "-m", "jupyter", "nbconvert", "--to", "notebook",
-                    "--execute", "--output", out.name, str(draft)], check=True)
-finally:
-    draft.unlink()
+out.write_text(nbformat.writes(nb) + "\n", encoding="utf-8", newline="\n")
 print("written:", out, f"({len(cells)} cells, executed)")

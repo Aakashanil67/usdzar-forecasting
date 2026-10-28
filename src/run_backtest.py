@@ -310,9 +310,13 @@ def members_cached(w: pd.DataFrame, name: str = "members_cache"
     if (cache.exists() and trials_file.exists() and meta.exists()
             and meta.read_text().strip() == key):
         print("member forecasts: loaded from cache")
-        return (pd.read_csv(cache, parse_dates=["origin", "target_date"]
+        # round_trip: the default parser can land one ulp off the written value,
+        # which made a warm-cache run differ from a cold one in the last digit.
+        rt = dict(float_precision="round_trip")
+        return (pd.read_csv(cache, parse_dates=["origin", "target_date"], **rt
                             ).set_index("origin"),
-                pd.read_csv(trials_file, parse_dates=["origin"]).set_index("origin"))
+                pd.read_csv(trials_file, parse_dates=["origin"], **rt
+                            ).set_index("origin"))
     print("member forecasts: computing (this is the slow stage)")
     log, trials = run_members(w)
     log.to_csv(cache)

@@ -11,6 +11,8 @@
 // 6 presented slides (~4:40) + references + 8 appendix slides.
 // Run: node make_presentation.js
 const pptxgen = require("pptxgenjs");
+const fs = require("fs");
+const JSZip = require("jszip");
 const path = require("path");
 
 const FIG = path.join(__dirname, "..", "figures");
@@ -401,5 +403,22 @@ const hdr = (t) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { c
   s.addNotes("Use for: how would you test this properly. The 2021 to 2025 window was scored repeatedly during development, so a clean test needs new origins.");
 }
 
-pres.writeFile({ fileName: path.join(__dirname, "..", "reports", "presentation.pptx") })
-  .then(() => console.log("reports/presentation.pptx written: 6 presented + references + 8 appendix"));
+// pptxgenjs stamps the current time into docProps/core.xml and zip uses the
+// current time for every entry, so two builds of the same deck differ. Rewrite
+// both to a fixed instant so the file is a pure function of its inputs.
+const STAMP = new Date("2026-07-01T00:00:00Z");
+
+pres.write({ outputType: "nodebuffer" })
+  .then((buf) => JSZip.loadAsync(buf))
+  .then(async (zip) => {
+    const core = "docProps/core.xml";
+    const xml = (await zip.file(core).async("string"))
+      .replace(/(<dcterms:(?:created|modified)[^>]*>)[^<]*/g, "$1" + STAMP.toISOString());
+    zip.file(core, xml);
+    for (const entry of Object.values(zip.files)) entry.date = STAMP;
+    return zip.generateAsync({ type: "nodebuffer", compression: "STORE" });
+  })
+  .then((out) => {
+    fs.writeFileSync(path.join(__dirname, "..", "reports", "presentation.pptx"), out);
+    console.log("reports/presentation.pptx written: 6 presented + references + 8 appendix");
+  });

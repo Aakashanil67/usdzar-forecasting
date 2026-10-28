@@ -1,6 +1,6 @@
 # Exact versions the committed outputs were produced with (CPython 3.12).
 # Direct dependencies of the pipeline plus everything they pull in; nothing
-# from the rest of the machine. nbconvert, nbclient and ipykernel are here
+# from the rest of the machine. nbclient, nbformat and ipykernel are here
 # only so build_notebook.py can execute the notebook.
 # Install:  pip install -r requirements-lock.txt
 asttokens==3.0.2
@@ -18,8 +18,10 @@ defusedxml==0.7.1
 executing==2.2.1
 fastjsonschema==2.22.2
 fonttools==4.63.0
+formulaic==1.2.2
 idna==3.19
 iniconfig==2.3.0
+interface-meta==2.0.1
 ipykernel==7.3.0
 ipython==9.16.1
 ipython-pygments-lexers==1.1.1
@@ -36,6 +38,7 @@ markupsafe==3.0.3
 matplotlib==3.11.1
 matplotlib-inline==0.2.2
 mistune==3.3.4
+narwhals==2.28.0
 nbclient==0.11.0
 nbconvert==7.17.1
 nbformat==5.10.4
@@ -45,6 +48,7 @@ packaging==26.3
 pandas==3.0.5
 pandocfilters==1.5.1
 parso==0.8.7
+patsy==1.0.2
 pillow==12.3.0
 platformdirs==4.11.4
 pluggy==1.6.0
@@ -65,7 +69,9 @@ scipy==1.15.3
 six==1.17.0
 soupsieve==2.9.2
 stack-data==0.6.3
+statsmodels==0.15.0
 threadpoolctl==3.6.0
+tinycss2==1.5.1
 tornado==6.5.8
 traitlets==5.16.1
 typing-extensions==4.16.0
@@ -73,3 +79,4 @@ tzdata==2026.3
 urllib3==2.7.0
 wcwidth==0.8.2
 webencodings==0.6.1
+wrapt==2.5.1
