@@ -1,0 +1,764 @@
+{
+ "keys": {
+  "ablation_max_gap": "0.00017",
+  "ar1_bias": "-0.0393",
+  "ar1_bias_share_pct": "0.49",
+  "ar1_mean_dev_pct": "-0.112",
+  "ar1_up_pct": "0",
+  "auto_lag_ar1": "13",
+  "auto_lag_rw": "11",
+  "behind_ar1": "0.4523",
+  "behind_combo": "0.4629",
+  "behind_rw": "0.4574",
+  "behind_year": "2025",
+  "bias_share_of_gap_pct": "55",
+  "chosen_delta": "0.97",
+  "chosen_ridge_desc": "the full predictor set, no intercept",
+  "chosen_ridge_tag": "RIDGE_f0",
+  "chosen_theta": "2",
+  "ci_combo_ar1_hi": "+0.0044",
+  "ci_combo_ar1_lo": "-0.0099",
+  "ci_combo_rw_hi": "+0.0029",
+  "ci_combo_rw_lo": "-0.0030",
+  "combo_bias": "-0.0055",
+  "combo_bias_share_pct": "0.01",
+  "combo_dir_acc_pct": "46.4",
+  "combo_mean_abs_dev_pct": "0.089",
+  "combo_minus_rw_rmse": "0.00006",
+  "combo_rank": "3",
+  "combo_up_pct": "100",
+  "cum_end_2021": "0.08",
+  "cum_end_2022": "0.68",
+  "cum_end_2023": "1.20",
+  "cum_end_2024": "1.22",
+  "cum_end_2025": "0.72",
+  "cum_final": "0.72",
+  "cum_peak": "1.32",
+  "cum_peak_date": "28 March 2025",
+  "dm_combo_ar1": "-0.76",
+  "dm_combo_rw": "-0.04",
+  "econdata_first": "2 January 1970",
+  "econdata_n": "14,173",
+  "equal3_vs_combo_gap": "0.00002",
+  "equal3_vs_combo_word": "lower",
+  "ex_all_too_low": "Every model forecast too low",
+  "ex_ar1_c": "0.006335",
+  "ex_ar1_mu": "13.01",
+  "ex_ar1_n": "1,222",
+  "ex_ar1_phi": "0.997531",
+  "ex_carry_diff": "0.0377",
+  "ex_carry_scaled": "0.0029",
+  "ex_err_ar1_log": "-0.9621",
+  "ex_err_carry": "-0.8919",
+  "ex_err_combo": "-0.9207",
+  "ex_err_gbm": "-0.7808",
+  "ex_err_ridge": "-0.9341",
+  "ex_err_rw": "-0.9365",
+  "ex_fc_ar1_log": "15.3861",
+  "ex_fc_carry": "15.4563",
+  "ex_fc_combo": "15.4275",
+  "ex_fc_gbm": "15.5674",
+  "ex_fc_ridge": "15.4141",
+  "ex_fc_rw": "15.4117",
+  "ex_forecast_high": "15.567",
+  "ex_forecast_low": "15.386",
+  "ex_half_life": "280",
+  "ex_move_cents": "94",
+  "ex_origin": "3 June 2022",
+  "ex_realized": "16.3482",
+  "ex_spot": "15.4117",
+  "ex_spot_short": "15.41",
+  "ex_spread_cents": "18",
+  "ex_target": "1 July 2022",
+  "ex_w_carry": "0.337",
+  "ex_w_ridge": "0.331",
+  "ex_w_rw": "0.333",
+  "ex_worst_model": "AR(1), log level (benchmark)",
+  "first_origin": "1 January 2021",
+  "gain_vs_ar1": "0.44",
+  "gain_vs_rw": "0.01",
+  "gbm_configs_in_force": "1",
+  "gbm_cv_folds": "5",
+  "gbm_err_corr_min": "0.97",
+  "gbm_grid_n": "12",
+  "gbm_n_retunes": "14",
+  "gbm_p_vs_ar1": "0.363",
+  "gbm_p_vs_rw": "0.273",
+  "gbm_retune_every": "52",
+  "gbm_worse_than_ar1_pct": "2.2",
+  "gbm_worse_than_rw_pct": "2.6",
+  "history_start_year": "1999",
+  "last_origin": "26 December 2025",
+  "last_target": "23 January 2026",
+  "mae_ar1_level": "0.4492",
+  "mae_ar1_log": "0.4478",
+  "mae_ar1_log_roll": "0.4502",
+  "mae_ar1_log_vc": "0.4492",
+  "mae_carry": "0.4540",
+  "mae_combo": "0.4495",
+  "mae_equal3": "0.4495",
+  "mae_gbm": "0.4723",
+  "mae_ridge": "0.4479",
+  "mae_rw": "0.4480",
+  "mae_rw_carry": "0.4504",
+  "mae_rw_drift": "0.4577",
+  "mae_rw_ridge": "0.4479",
+  "max_err_corr": "0.99998",
+  "max_err_corr_pair": "random walk and carry",
+  "mean_gap": "2.11",
+  "min_gap": "0.57",
+  "min_holm_p": "0.201",
+  "mse_gap": "0.00275",
+  "mu_max": "19.18",
+  "mu_min": "11.80",
+  "n_beat_ar1": "4",
+  "n_below_spot": "261",
+  "n_core_models": "5",
+  "n_exploratory": "21",
+  "n_exploratory_unadjusted": "2",
+  "n_grid": "24",
+  "n_holm_significant": "0",
+  "n_models": "13",
+  "n_origins": "261",
+  "n_rw_family": "7",
+  "n_targets_in_2025": "257",
+  "one_minus_phi_max": "0.0029",
+  "one_minus_phi_min": "0.0014",
+  "overlap_max_diff": "0.000000",
+  "overlap_mismatches": "0",
+  "overlap_n": "9,141",
+  "p_combo_ar1": "0.449",
+  "p_combo_ar1_max": "0.456",
+  "p_combo_ar1_min": "0.449",
+  "p_combo_rw": "0.967",
+  "p_combo_rw_max": "0.967",
+  "p_combo_rw_min": "0.966",
+  "phi_max": "0.9986",
+  "phi_min": "0.9971",
+  "plan_ar1_1_n": "680",
+  "plan_ar1_1_power": "41",
+  "plan_ar1_1_years": "13.1",
+  "plan_ar1_2_n": "172",
+  "plan_ar1_2_power": "93",
+  "plan_ar1_2_years": "3.3",
+  "plan_ar1_5_n": "29",
+  "plan_ar1_5_power": "100",
+  "plan_ar1_5_years": "0.5",
+  "plan_ar1_mse": "0.3163",
+  "plan_ar1_sd": "0.0586",
+  "plan_rw_1_n": "120",
+  "plan_rw_1_power": "99",
+  "plan_rw_1_years": "2.3",
+  "plan_rw_2_n": "31",
+  "plan_rw_2_power": "100",
+  "plan_rw_2_years": "0.6",
+  "plan_rw_5_n": "5",
+  "plan_rw_5_power": "100",
+  "plan_rw_5_years": "0.1",
+  "plan_rw_mse": "0.3136",
+  "plan_rw_sd": "0.0243",
+  "planning_assumptions": "- two-sided 5% DM test on squared-error loss, 80% power, normal approximation\n- the long-run sd of the loss differential stays at its 2021-2025 value for COMBO against that benchmark (Newey-West, lag 3)\n- the benchmark's MSE stays at its 2021-2025 value\n- effect sizes are fixed in advance, not taken from the observed result",
+  "realized_up_pct": "46.4",
+  "rmse_ar1_level": "0.5629",
+  "rmse_ar1_log": "0.5624",
+  "rmse_ar1_log_roll": "0.5724",
+  "rmse_ar1_log_vc": "0.5617",
+  "rmse_carry": "0.5606",
+  "rmse_ci_combo_ar1_hi": "+0.0039",
+  "rmse_ci_combo_ar1_lo": "-0.0088",
+  "rmse_ci_combo_rw_hi": "+0.0026",
+  "rmse_ci_combo_rw_lo": "-0.0027",
+  "rmse_ci_half_rw": "0.0026",
+  "rmse_combo": "0.5599",
+  "rmse_diff_combo_ar1": "-0.00245",
+  "rmse_diff_combo_rw": "-0.00006",
+  "rmse_equal3": "0.5599",
+  "rmse_gbm": "0.5745",
+  "rmse_ridge": "0.5602",
+  "rmse_rw": "0.5600",
+  "rmse_rw_carry": "0.5599",
+  "rmse_rw_drift": "0.5627",
+  "rmse_rw_ridge": "0.5601",
+  "rmse_spread_rw_family": "0.00068",
+  "roll_best": "0.9800",
+  "roll_share": "67.6",
+  "roll_weeks": "52",
+  "roll_windows": "210",
+  "roll_worst": "1.0234",
+  "rw_bias": "-0.0207",
+  "rw_drift_up_pct": "100",
+  "rw_rank": "4",
+  "spot_first": "14.62",
+  "spot_peak": "19.74",
+  "strict_ar1_level": "0.5652",
+  "strict_ar1_log": "0.5647",
+  "strict_ar1_log_roll": "0.5741",
+  "strict_ar1_log_vc": "0.5639",
+  "strict_carry": "0.5623",
+  "strict_combo": "0.5619",
+  "strict_equal3": "0.5619",
+  "strict_gbm": "0.5755",
+  "strict_ridge": "0.5623",
+  "strict_rw": "0.5622",
+  "strict_rw_carry": "0.5619",
+  "strict_rw_drift": "0.5643",
+  "strict_rw_ridge": "0.5622",
+  "table_dm": "| Model | DM vs AR(1) | p | Holm p | DM vs RW | p | Holm p |\n|:---|---:|---:|---:|---:|---:|---:|\n| AR(1), log level (benchmark) | - | - | - | +1.23 | 0.218 | 1.000 |\n| AR(1), level | +0.33 | 0.741 | 1.000 | +2.39 | 0.017 | 0.338 |\n| AR(1), 5-year window | +0.82 | 0.410 | 1.000 | +0.92 | 0.355 | 1.000 |\n| AR(1), mean-corrected | -0.38 | 0.703 | 1.000 | +2.59 | 0.010 | 0.201 |\n| Random walk | -1.23 | 0.218 | 1.000 | - | - | - |\n| Random walk with drift | +0.04 | 0.968 | 1.000 | +0.48 | 0.628 | 1.000 |\n| Carry | -0.31 | 0.760 | 1.000 | +0.14 | 0.885 | 1.000 |\n| Ridge | -1.12 | 0.264 | 1.000 | +0.42 | 0.673 | 1.000 |\n| Gradient boosting | +0.91 | 0.363 | 1.000 | +1.10 | 0.273 | 1.000 |\n| Combination (prespecified) | -0.76 | 0.449 | n/a | -0.04 | 0.967 | n/a |\n| Equal-weight RW + carry + ridge | -0.77 | 0.444 | 1.000 | -0.06 | 0.952 | 1.000 |\n| Adaptive RW + carry | -0.63 | 0.525 | 1.000 | -0.05 | 0.962 | 1.000 |\n| Adaptive RW + ridge | -1.19 | 0.233 | 1.000 | +0.39 | 0.697 | 1.000 |",
+  "table_plan_ar1": "| RMSE cut | Origins needed | Years of weekly origins | Power with 261 origins |\n|:---|---:|---:|---:|\n| 1% | 680 | 13.1 | 41% |\n| 2% | 172 | 3.3 | 93% |\n| 5% | 29 | 0.5 | 100% |",
+  "table_plan_rw": "| RMSE cut | Origins needed | Years of weekly origins | Power with 261 origins |\n|:---|---:|---:|---:|\n| 1% | 120 | 2.3 | 99% |\n| 2% | 31 | 0.6 | 100% |\n| 5% | 5 | 0.1 | 100% |",
+  "table_results": "| Model | RMSE | MAE | RMSE below AR(1) | Rank | Calls a rise |\n|:---|---:|---:|---:|---:|---:|\n| AR(1), log level (benchmark) | 0.5624 | 0.4478 |  | 9 | 0% |\n| AR(1), level | 0.5629 | 0.4492 | -0.09% | 11 | 31% |\n| AR(1), 5-year window | 0.5724 | 0.4502 | -1.79% | 12 | 9% |\n| AR(1), mean-corrected | 0.5617 | 0.4492 | +0.11% | 8 | 59% |\n| Random walk | 0.5600 | 0.4480 | +0.43% | 4 | 0% |\n| Random walk with drift | 0.5627 | 0.4577 | -0.05% | 10 | 100% |\n| Carry | 0.5606 | 0.4540 | +0.32% | 7 | 100% |\n| Ridge | 0.5602 | 0.4479 | +0.38% | 6 | 72% |\n| Gradient boosting | 0.5745 | 0.4723 | -2.16% | 13 | 65% |\n| Combination | 0.5599 | 0.4495 | +0.44% | 3 | 100% |\n| Equal-weight RW + carry + ridge | 0.5599 | 0.4495 | +0.44% | 2 | 100% |\n| Adaptive RW + carry | 0.5599 | 0.4504 | +0.44% | 1 | 100% |\n| Adaptive RW + ridge | 0.5601 | 0.4479 | +0.40% | 5 | 72% |",
+  "table_timing": "| Model | Base timing | Predictors one week later | Change |\n|:---|---:|---:|---:|\n| AR(1), log level (benchmark) | 0.5624 | 0.5624 | +0.00000 |\n| AR(1), level | 0.5629 | 0.5629 | +0.00000 |\n| Random walk | 0.5600 | 0.5600 | +0.00000 |\n| Carry | 0.5606 | 0.5605 | -0.00003 |\n| Ridge | 0.5602 | 0.5599 | -0.00033 |\n| Gradient boosting | 0.5745 | 0.5638 | -0.01075 |\n| Combination | 0.5599 | 0.5598 | -0.00014 |",
+  "table_validation_top5": "| Ridge variant | Decay | Sharpness | Validation RMSE |\n|:---|---:|---:|---:|\n| RIDGE_f0 (full set, no intercept) | 0.97 | 2 | 0.65920 |\n| RIDGE_f0 (full set, no intercept) | 0.99 | 2 | 0.65928 |\n| RIDGE_f0 (full set, no intercept) | 0.97 | 1 | 0.65928 |\n| RIDGE_f0 (full set, no intercept) | 1.00 | 2 | 0.65932 |\n| RIDGE_f0 (full set, no intercept) | 0.99 | 1 | 0.65932 |",
+  "table_weights_by_year": "| Year | Random walk, mean | Carry, mean | Ridge, mean | Smallest weight | Largest weight |\n|:---|---:|---:|---:|---:|---:|\n| 2021 | 0.338 | 0.330 | 0.332 | 0.320 | 0.346 |\n| 2022 | 0.332 | 0.339 | 0.329 | 0.322 | 0.353 |\n| 2023 | 0.330 | 0.342 | 0.328 | 0.323 | 0.352 |\n| 2024 | 0.336 | 0.328 | 0.335 | 0.312 | 0.346 |\n| 2025 | 0.337 | 0.324 | 0.340 | 0.306 | 0.348 |",
+  "table_worked": "| Model | Forecast | Error |\n|:---|---:|---:|\n| Gradient boosting | 15.5674 | -0.7808 |\n| Carry | 15.4563 | -0.8919 |\n| Combination | 15.4275 | -0.9207 |\n| Ridge | 15.4141 | -0.9341 |\n| Random walk | 15.4117 | -0.9365 |\n| AR(1), log level (benchmark) | 15.3861 | -0.9621 |",
+  "table_years": "| Year | AR(1) | Random walk | Combination | Equal weights | Lower of AR(1) and combination |\n|:---|---:|---:|---:|---:|---:|\n| 2021 | 0.5118 | 0.5102 | 0.5104 | 0.5104 | Combination |\n| 2022 | 0.6985 | 0.6928 | 0.6902 | 0.6901 | Combination |\n| 2023 | 0.6553 | 0.6493 | 0.6475 | 0.6475 | Combination |\n| 2024 | 0.4456 | 0.4449 | 0.4453 | 0.4452 | Combination |\n| 2025 | 0.4523 | 0.4574 | 0.4629 | 0.4630 | AR(1) |",
+  "timing_combo_base": "0.5599",
+  "timing_combo_extra": "0.5598",
+  "timing_extra_chosen_same": "the same configuration",
+  "timing_gbm_base": "0.5745",
+  "timing_gbm_change": "0.0107",
+  "timing_gbm_extra": "0.5638",
+  "timing_max_other_change": "0.00033",
+  "usd_broad_first_vintage": "4 February 2019",
+  "val_first": "2 January 2015",
+  "val_grid_spread": "0.00237",
+  "val_last": "27 November 2020",
+  "val_last_target": "25 December 2020",
+  "val_n": "309",
+  "val_rmse_ar1": "0.6679",
+  "val_rmse_combo": "0.6592",
+  "val_rmse_rw": "0.6593",
+  "val_top5_gap": "0.00012",
+  "w_max": "0.353",
+  "w_mean_carry": "0.333",
+  "w_mean_ridge": "0.333",
+  "w_mean_rw": "0.334",
+  "w_min": "0.306",
+  "window_overlap_n": "1,290",
+  "years_ahead": "2021, 2022, 2023 and 2024",
+  "years_ahead_n": "4",
+  "years_behind": "2025",
+  "years_n": "5"
+ },
+ "tables": {
+  "dm": [
+   [
+    "Model",
+    "DM vs AR(1)",
+    "p",
+    "Holm p",
+    "DM vs RW",
+    "p",
+    "Holm p"
+   ],
+   [
+    "AR(1), log level (benchmark)",
+    "-",
+    "-",
+    "-",
+    "+1.23",
+    "0.218",
+    "1.000"
+   ],
+   [
+    "AR(1), level",
+    "+0.33",
+    "0.741",
+    "1.000",
+    "+2.39",
+    "0.017",
+    "0.338"
+   ],
+   [
+    "AR(1), 5-year window",
+    "+0.82",
+    "0.410",
+    "1.000",
+    "+0.92",
+    "0.355",
+    "1.000"
+   ],
+   [
+    "AR(1), mean-corrected",
+    "-0.38",
+    "0.703",
+    "1.000",
+    "+2.59",
+    "0.010",
+    "0.201"
+   ],
+   [
+    "Random walk",
+    "-1.23",
+    "0.218",
+    "1.000",
+    "-",
+    "-",
+    "-"
+   ],
+   [
+    "Random walk with drift",
+    "+0.04",
+    "0.968",
+    "1.000",
+    "+0.48",
+    "0.628",
+    "1.000"
+   ],
+   [
+    "Carry",
+    "-0.31",
+    "0.760",
+    "1.000",
+    "+0.14",
+    "0.885",
+    "1.000"
+   ],
+   [
+    "Ridge",
+    "-1.12",
+    "0.264",
+    "1.000",
+    "+0.42",
+    "0.673",
+    "1.000"
+   ],
+   [
+    "Gradient boosting",
+    "+0.91",
+    "0.363",
+    "1.000",
+    "+1.10",
+    "0.273",
+    "1.000"
+   ],
+   [
+    "Combination (prespecified)",
+    "-0.76",
+    "0.449",
+    "n/a",
+    "-0.04",
+    "0.967",
+    "n/a"
+   ],
+   [
+    "Equal-weight RW + carry + ridge",
+    "-0.77",
+    "0.444",
+    "1.000",
+    "-0.06",
+    "0.952",
+    "1.000"
+   ],
+   [
+    "Adaptive RW + carry",
+    "-0.63",
+    "0.525",
+    "1.000",
+    "-0.05",
+    "0.962",
+    "1.000"
+   ],
+   [
+    "Adaptive RW + ridge",
+    "-1.19",
+    "0.233",
+    "1.000",
+    "+0.39",
+    "0.697",
+    "1.000"
+   ]
+  ],
+  "plan_ar1": [
+   [
+    "RMSE cut",
+    "Origins needed",
+    "Years of weekly origins",
+    "Power with 261 origins"
+   ],
+   [
+    "1%",
+    "680",
+    "13.1",
+    "41%"
+   ],
+   [
+    "2%",
+    "172",
+    "3.3",
+    "93%"
+   ],
+   [
+    "5%",
+    "29",
+    "0.5",
+    "100%"
+   ]
+  ],
+  "plan_rw": [
+   [
+    "RMSE cut",
+    "Origins needed",
+    "Years of weekly origins",
+    "Power with 261 origins"
+   ],
+   [
+    "1%",
+    "120",
+    "2.3",
+    "99%"
+   ],
+   [
+    "2%",
+    "31",
+    "0.6",
+    "100%"
+   ],
+   [
+    "5%",
+    "5",
+    "0.1",
+    "100%"
+   ]
+  ],
+  "results": [
+   [
+    "Model",
+    "RMSE",
+    "MAE",
+    "RMSE below AR(1)",
+    "Rank",
+    "Calls a rise"
+   ],
+   [
+    "AR(1), log level (benchmark)",
+    "0.5624",
+    "0.4478",
+    "",
+    "9",
+    "0%"
+   ],
+   [
+    "AR(1), level",
+    "0.5629",
+    "0.4492",
+    "-0.09%",
+    "11",
+    "31%"
+   ],
+   [
+    "AR(1), 5-year window",
+    "0.5724",
+    "0.4502",
+    "-1.79%",
+    "12",
+    "9%"
+   ],
+   [
+    "AR(1), mean-corrected",
+    "0.5617",
+    "0.4492",
+    "+0.11%",
+    "8",
+    "59%"
+   ],
+   [
+    "Random walk",
+    "0.5600",
+    "0.4480",
+    "+0.43%",
+    "4",
+    "0%"
+   ],
+   [
+    "Random walk with drift",
+    "0.5627",
+    "0.4577",
+    "-0.05%",
+    "10",
+    "100%"
+   ],
+   [
+    "Carry",
+    "0.5606",
+    "0.4540",
+    "+0.32%",
+    "7",
+    "100%"
+   ],
+   [
+    "Ridge",
+    "0.5602",
+    "0.4479",
+    "+0.38%",
+    "6",
+    "72%"
+   ],
+   [
+    "Gradient boosting",
+    "0.5745",
+    "0.4723",
+    "-2.16%",
+    "13",
+    "65%"
+   ],
+   [
+    "Combination",
+    "0.5599",
+    "0.4495",
+    "+0.44%",
+    "3",
+    "100%"
+   ],
+   [
+    "Equal-weight RW + carry + ridge",
+    "0.5599",
+    "0.4495",
+    "+0.44%",
+    "2",
+    "100%"
+   ],
+   [
+    "Adaptive RW + carry",
+    "0.5599",
+    "0.4504",
+    "+0.44%",
+    "1",
+    "100%"
+   ],
+   [
+    "Adaptive RW + ridge",
+    "0.5601",
+    "0.4479",
+    "+0.40%",
+    "5",
+    "72%"
+   ]
+  ],
+  "timing": [
+   [
+    "Model",
+    "Base timing",
+    "Predictors one week later",
+    "Change"
+   ],
+   [
+    "AR(1), log level (benchmark)",
+    "0.5624",
+    "0.5624",
+    "+0.00000"
+   ],
+   [
+    "AR(1), level",
+    "0.5629",
+    "0.5629",
+    "+0.00000"
+   ],
+   [
+    "Random walk",
+    "0.5600",
+    "0.5600",
+    "+0.00000"
+   ],
+   [
+    "Carry",
+    "0.5606",
+    "0.5605",
+    "-0.00003"
+   ],
+   [
+    "Ridge",
+    "0.5602",
+    "0.5599",
+    "-0.00033"
+   ],
+   [
+    "Gradient boosting",
+    "0.5745",
+    "0.5638",
+    "-0.01075"
+   ],
+   [
+    "Combination",
+    "0.5599",
+    "0.5598",
+    "-0.00014"
+   ]
+  ],
+  "validation_top5": [
+   [
+    "Ridge variant",
+    "Decay",
+    "Sharpness",
+    "Validation RMSE"
+   ],
+   [
+    "RIDGE_f0 (full set, no intercept)",
+    "0.97",
+    "2",
+    "0.65920"
+   ],
+   [
+    "RIDGE_f0 (full set, no intercept)",
+    "0.99",
+    "2",
+    "0.65928"
+   ],
+   [
+    "RIDGE_f0 (full set, no intercept)",
+    "0.97",
+    "1",
+    "0.65928"
+   ],
+   [
+    "RIDGE_f0 (full set, no intercept)",
+    "1.00",
+    "2",
+    "0.65932"
+   ],
+   [
+    "RIDGE_f0 (full set, no intercept)",
+    "0.99",
+    "1",
+    "0.65932"
+   ]
+  ],
+  "weights_by_year": [
+   [
+    "Year",
+    "Random walk, mean",
+    "Carry, mean",
+    "Ridge, mean",
+    "Smallest weight",
+    "Largest weight"
+   ],
+   [
+    "2021",
+    "0.338",
+    "0.330",
+    "0.332",
+    "0.320",
+    "0.346"
+   ],
+   [
+    "2022",
+    "0.332",
+    "0.339",
+    "0.329",
+    "0.322",
+    "0.353"
+   ],
+   [
+    "2023",
+    "0.330",
+    "0.342",
+    "0.328",
+    "0.323",
+    "0.352"
+   ],
+   [
+    "2024",
+    "0.336",
+    "0.328",
+    "0.335",
+    "0.312",
+    "0.346"
+   ],
+   [
+    "2025",
+    "0.337",
+    "0.324",
+    "0.340",
+    "0.306",
+    "0.348"
+   ]
+  ],
+  "worked": [
+   [
+    "Model",
+    "Forecast",
+    "Error"
+   ],
+   [
+    "Gradient boosting",
+    "15.5674",
+    "-0.7808"
+   ],
+   [
+    "Carry",
+    "15.4563",
+    "-0.8919"
+   ],
+   [
+    "Combination",
+    "15.4275",
+    "-0.9207"
+   ],
+   [
+    "Ridge",
+    "15.4141",
+    "-0.9341"
+   ],
+   [
+    "Random walk",
+    "15.4117",
+    "-0.9365"
+   ],
+   [
+    "AR(1), log level (benchmark)",
+    "15.3861",
+    "-0.9621"
+   ]
+  ],
+  "years": [
+   [
+    "Year",
+    "AR(1)",
+    "Random walk",
+    "Combination",
+    "Equal weights",
+    "Lower of AR(1) and combination"
+   ],
+   [
+    "2021",
+    "0.5118",
+    "0.5102",
+    "0.5104",
+    "0.5104",
+    "Combination"
+   ],
+   [
+    "2022",
+    "0.6985",
+    "0.6928",
+    "0.6902",
+    "0.6901",
+    "Combination"
+   ],
+   [
+    "2023",
+    "0.6553",
+    "0.6493",
+    "0.6475",
+    "0.6475",
+    "Combination"
+   ],
+   [
+    "2024",
+    "0.4456",
+    "0.4449",
+    "0.4453",
+    "0.4452",
+    "Combination"
+   ],
+   [
+    "2025",
+    "0.4523",
+    "0.4574",
+    "0.4629",
+    "0.4630",
+    "AR(1)"
+   ]
+  ]
+ }
+}

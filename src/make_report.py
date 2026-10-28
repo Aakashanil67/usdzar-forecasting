@@ -1,24 +1,28 @@
 """
-make_report.py - Generates reports/technical_report.pdf from the CURRENT pipeline
-outputs (metrics.json, validation_metrics.json, figures/). Re-run after any change
-and the report reflects the latest numbers.
+make_report.py - Builds reports/technical_report.pdf.
+
+Prose is written with {{key}} placeholders and filled from the saved outputs by
+render_docs.fill(); tables come from render_docs.TABLES. Nothing here types a
+result by hand. Run render_docs.py (or run_all.py) first.
 """
 import datetime as dt
 import json
 from pathlib import Path
 
+from PIL import Image as PILImage
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import (Image, PageBreak, Paragraph, SimpleDocTemplate,
-                                Spacer, Table, TableStyle)
+from reportlab.platypus import (Image, KeepTogether, PageBreak, Paragraph,
+                                SimpleDocTemplate, Spacer, Table, TableStyle)
+
+from render_docs import TABLES, fill
 
 BASE = Path(__file__).resolve().parents[1]
 PROC, FIG, REP = BASE / "data" / "processed", BASE / "figures", BASE / "reports"
 REP.mkdir(exist_ok=True)
 
-MET = json.load(open(PROC / "metrics.json"))
 VAL = json.load(open(PROC / "validation_metrics.json"))
 RIDGE_SET = "full" if VAL["chosen_config"]["ridge"].startswith("RIDGE_f") else "compact"
 PREDICTORS = {
@@ -37,71 +41,71 @@ if (REP / "team.txt").exists():
             if ln.strip()]
 
 S = getSampleStyleSheet()
+NAVY, BLUE = colors.HexColor("#123a5f"), colors.HexColor("#1a5f8f")
 H1 = ParagraphStyle("h1", parent=S["Heading1"], spaceBefore=14, spaceAfter=6,
-                    textColor=colors.HexColor("#123a5f"))
+                    textColor=NAVY, keepWithNext=True)
 H2 = ParagraphStyle("h2", parent=S["Heading2"], spaceBefore=10, spaceAfter=4,
-                    textColor=colors.HexColor("#1a5f8f"))
+                    textColor=BLUE, keepWithNext=True)
 P = ParagraphStyle("p", parent=S["BodyText"], fontSize=9.5, leading=13.5,
                    spaceAfter=6, alignment=4)
 SMALL = ParagraphStyle("s", parent=P, fontSize=8, leading=11,
                        textColor=colors.HexColor("#444444"))
+TEXT_WIDTH = 17.0                      # cm, A4 less the 2 cm margins
 
 
 def para(txt, style=P):
-    return Paragraph(txt, style)
+    return Paragraph(fill(txt), style)
 
 
-def img(name, width=15.5):
-    return Image(str(FIG / name), width=width * cm,
-                 height=width * cm * _ratio(name))
-
-
-def _ratio(name):
-    from PIL import Image as PILImage
+def figure(name, width, caption):
+    """An image and its caption, kept on one page."""
     w, h = PILImage.open(FIG / name).size
-    return h / w
+    return KeepTogether([Image(str(FIG / name), width=width * cm,
+                               height=width * cm * h / w),
+                         para(caption, SMALL), Spacer(1, 4)])
 
 
-def long_date(iso):
-    d = dt.date.fromisoformat(iso)
-    return f"{d.day} {d:%B %Y}"
+def table(rows, widths, bold_row=None, caption=None):
+    """Header row repeats if the table runs onto another page."""
+    cells = [[Paragraph(c, ParagraphStyle("c", parent=SMALL, alignment=1 if j else 0,
+                                          textColor=colors.white if i == 0 else colors.black,
+                                          fontName="Helvetica-Bold" if (i == 0 or r[0] == bold_row)
+                                          else "Helvetica"))
+              for j, c in enumerate(r)] for i, r in enumerate(rows)]
+    t = Table(cells, colWidths=[w * cm for w in widths], repeatRows=1)
+    style = [("BACKGROUND", (0, 0), (-1, 0), NAVY),
+             ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#999999")),
+             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+             ("ROWBACKGROUNDS", (0, 1), (-1, -1),
+              [colors.white, colors.HexColor("#f2f6fa")])]
+    for i, r in enumerate(rows):
+        if bold_row and r[0] == bold_row:
+            style.append(("BACKGROUND", (0, i), (-1, i), colors.HexColor("#e8f4ec")))
+    t.setStyle(TableStyle(style))
+    return [t] + ([para(caption, SMALL), Spacer(1, 4)] if caption else [Spacer(1, 6)])
 
 
-def fmt(x, nd=4):
-    return f"{x:.{nd}f}"
+def prespecified_rows():
+    return [["Comparison", "DM (lag 3)", "p", "95% interval, mean squared-error difference",
+             "RMSE difference", "p across four lags"],
+            ["Combination vs AR(1)", "{{dm_combo_ar1}}", "{{p_combo_ar1}}",
+             "{{ci_combo_ar1_lo}} to {{ci_combo_ar1_hi}}", "{{rmse_diff_combo_ar1}}",
+             "{{p_combo_ar1_min}} to {{p_combo_ar1_max}}"],
+            ["Combination vs random walk", "{{dm_combo_rw}}", "{{p_combo_rw}}",
+             "{{ci_combo_rw_lo}} to {{ci_combo_rw_hi}}", "{{rmse_diff_combo_rw}}",
+             "{{p_combo_rw_min}} to {{p_combo_rw_max}}"]]
 
 
-def results_table():
-    rows = [["Model", "RMSE", "MAE", "Dir. acc.", "RMSE vs AR(1)",
-             "DM stat (p)"]]
-    base = MET["AR1_log"]["rmse"]
-    order = [("AR1_log", "AR(1) baseline (log level)"),
-             ("AR1_level", "AR(1) robustness (level)"),
-             ("RW", "Random walk"), ("CARRY", "Carry / forward rate"),
-             ("RIDGE", f"Ridge ({RIDGE_SET} set, frozen)"),
-             ("GBM", "Gradient boosting"), ("COMBO", "Combination (ours)")]
-    for key, nice in order:
-        m = MET[key]
-        rel = 100 * (1 - m["rmse"] / base)
-        dm = m.get("dm_vs_ar1")
-        rows.append([nice, fmt(m["rmse"]), fmt(m["mae"]),
-                     f"{m['dir_acc']:.1%}" if key != "RW" else "n/a",
-                     f"{rel:+.2f}%" if key != "AR1_log" else "",
-                     f"{dm[0]:.2f} ({dm[1]:.3f})" if dm else ""])
-    t = Table(rows, colWidths=[4.6 * cm, 2.0 * cm, 2.0 * cm, 1.9 * cm,
-                               2.6 * cm, 2.6 * cm])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#123a5f")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTSIZE", (0, 0), (-1, -1), 8),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
-        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#e8f4ec")),
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#999999")),
-        ("ALIGN", (1, 1), (-1, -1), "CENTER"),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -2),
-         [colors.white, colors.HexColor("#f2f6fa")])]))
-    return t
+def filled(rows):
+    return [[fill(c) for c in r] for r in rows]
+
+
+def footer(canvas, doc):
+    canvas.saveState()
+    canvas.setFont("Helvetica", 8)
+    canvas.setFillColor(colors.HexColor("#666666"))
+    canvas.drawRightString(A4[0] - 2 * cm, 1.0 * cm, f"Page {doc.page}")
+    canvas.restoreState()
 
 
 def main():
@@ -111,66 +115,60 @@ def main():
                             title="USDZAR 1-Month-Ahead Forecasting",
                             author=", ".join(TEAM))
     E = []
-    base, combo, rw = (MET["AR1_log"]["rmse"], MET["COMBO"]["rmse"],
-                       MET["RW"]["rmse"])
-    gain = 100 * (1 - combo / base)
-    gbm = 100 * (MET["GBM"]["rmse"] / base - 1)
-    cfg = VAL["chosen_config"]
-    vw = VAL["validation_window"]
 
     # ---------------- title ----------------
     E.append(Spacer(1, 3 * cm))
-    E.append(para("Forecasting USDZAR one month ahead:",
+    E.append(para("Forecasting USDZAR one month ahead",
                   ParagraphStyle("t", parent=S["Title"], fontSize=22)))
-    E.append(para("a disciplined forecast combination against the AR(1) benchmark",
-                  ParagraphStyle("st", parent=S["Title"], fontSize=15,
-                                 textColor=colors.HexColor("#1a5f8f"))))
+    E.append(para("a forecast combination against the AR(1) benchmark and the random walk",
+                  ParagraphStyle("st", parent=S["Title"], fontSize=15, textColor=BLUE)))
     E.append(Spacer(1, 1 * cm))
     E.append(para("SES x Codera Analytics Hackathon, July 2026",
                   ParagraphStyle("c", parent=P, alignment=1, fontSize=11)))
     E.append(para("<br/>".join(TEAM),
                   ParagraphStyle("c2", parent=P, alignment=1, fontSize=10)))
-    E.append(para(f"Generated from the live results pipeline on "
-                  f"{dt.date.today():%d %B %Y}.",
+    E.append(para(f"Built on {dt.date.today():%d %B %Y} from the saved pipeline outputs.",
                   ParagraphStyle("c3", parent=SMALL, alignment=1)))
     E.append(PageBreak())
 
-    # ---------------- 1. executive summary ----------------
-    E.append(para("1. Executive summary", H1))
+    # ---------------- 1. summary ----------------
+    E.append(para("1. Summary", H1))
     E.append(para(
-        f"An AR(1) fitted to two decades of rand history is a weak benchmark "
-        f"for a currency that trends, and that weakness is what this project "
-        f"exploits. Our forecast combination scores an RMSE of "
-        f"<b>{fmt(combo)}</b> against the AR(1) baseline's <b>{fmt(base)}</b> "
-        f"over {MET['COMBO']['n']} Friday forecasts running from 1 January 2021 "
-        f"to 31 December 2025, an improvement of <b>{gain:+.2f} per cent</b>. "
-        f"Four of our five models beat the baseline. The one that fails is a "
-        f"gradient-boosting comparator run under identical conditions, which "
-        f"loses by {gbm:.1f} per cent. We kept it in the submission because "
-        f"that failure is evidence for the design rather than against it."))
+        "We forecast USDZAR four weeks ahead at {{n_origins}} Fridays, from "
+        "{{first_origin}} to {{last_origin}}, and scored the forecasts against the "
+        "mandated AR(1) benchmark. Our forecast combination, an average of a "
+        "random walk, a carry forecast and a shrunk ridge regression, scored an "
+        "RMSE of <b>{{rmse_combo}}</b> against <b>{{rmse_ar1_log}}</b> for the "
+        "AR(1), which is {{gain_vs_ar1}} per cent lower. The difference is not "
+        "statistically established. The Diebold-Mariano p-value is "
+        "{{p_combo_ar1}}, and the 95% interval for the mean squared-error "
+        "difference runs from {{ci_combo_ar1_lo}} to {{ci_combo_ar1_hi}}, which "
+        "includes zero. Against the random walk, whose RMSE is {{rmse_rw}}, the "
+        "combination is level (p = {{p_combo_rw}}). In practice it is the random "
+        "walk with a small tilt: its forecasts sit {{combo_mean_abs_dev_pct}} per "
+        "cent from spot on average."))
     E.append(para(
-        "The reason the baseline is beatable is specific rather than general. "
-        "Its estimated persistence on weekly log levels sits between 0.9971 and "
-        "0.9986 across our forecast origins, just below one, so each forecast is "
-        "pulled toward an implied long-run mean of c/(1-phi). We computed that "
-        "implied mean at all 261 origins. It ranged from R11.80 to R19.18 as the "
-        "estimation sample grew, and <b>it sat below the prevailing spot rate at "
-        "every one of the 261 origins</b>, by R2.11 on average and by at least "
-        "R0.57. The AR(1) was therefore leaning downward against a currency that "
-        "rose from R14.62 at the first origin to a peak of R19.74, continuously, "
-        "for five years. Each individual bias is small. Repeated 261 times it is "
-        "not, and RMSE weights most heavily the occasional large error that mean "
-        "reversion produces in a trending market."))
+        "Two further results limit what the combination can claim. An "
+        "equal-weight average of the same three components scored "
+        "{{rmse_equal3}}, so the adaptive weighting contributes nothing we can "
+        "measure. The weights stayed between {{w_min}} and {{w_max}}, because the "
+        "components' errors are almost the same series (correlation up to "
+        "{{max_err_corr}}). And the one flexible model we ran, gradient boosting, "
+        "scored {{rmse_gbm}}, the highest of the {{n_models}} models. That "
+        "conclusion covers this specification and nothing broader."))
     E.append(para(
-        f"We are deliberately modest about what follows. Meese and Rogoff "
-        f"(1983) showed that structural exchange-rate models lose to a "
-        f"no-change forecast out of sample, and Rossi's (2013) survey finds "
-        f"that the finding has largely held. Published improvements over naive "
-        f"benchmarks run at roughly 1 to 5 per cent in RMSE and come from "
-        f"shrinkage and combination rather than from richer models. Our "
-        f"{gain:.2f} per cent sits inside that range. It is also not "
-        f"statistically significant, which we state in section 7 rather than "
-        f"leave for a judge to find."))
+        "The AR(1) differs from the other models in a way we can measure. Its "
+        "implied long-run level sat below spot at {{n_below_spot}} of "
+        "{{n_origins}} origins, by R{{mean_gap}} on average, and it never "
+        "forecast a rise. The difference in squared bias accounts for "
+        "{{bias_share_of_gap_pct}} per cent of its excess squared error against "
+        "the combination. We report this as an observation and have not shown "
+        "that it is the whole explanation."))
+    E.append(para(
+        "All 2021 to 2025 results are exploratory. The window was scored "
+        "repeatedly while the code was built and repaired, comparisons were added "
+        "after earlier results had been seen, and no new holdout exists. Section 7 "
+        "sets out a protocol for a prospective test."))
 
     # ---------------- 2. task and protocol ----------------
     E.append(para("2. Task and protocol", H1))
@@ -180,19 +178,18 @@ def main():
         "2021 to 2025, and to compare RMSE against an AR(1) model. Our reading "
         "of it is as follows."))
     E.append(para(
-        "<b>Origin grid.</b> Every Friday t from 2021-01-01 to 2025-12-26, "
-        "which gives 261 origins. <b>Spot at t</b> is the last EXCX135 fixing "
-        "dated on or before t; the SARB publishes at approximately 10:30. "
-        "<b>Target.</b> The EXCX135 fixing 28 calendar days later, which is the "
-        "Friday four weeks ahead, taking the last fixing on or before that date "
-        "when it falls on a holiday. Twenty-eight days is the natural "
-        "Friday-to-Friday reading of one month ahead: it holds origin and "
-        "target on the same weekday and avoids month-end irregularity. A "
-        "calendar-month variant changes no ranking. <b>Information set at t.</b> "
-        "Only observations dated on or before t. Every predictor is a daily "
-        "market price or rate, so nothing is revised and nothing arrives late, "
-        "and the as-of merge is by itself enough to guarantee a true "
-        "out-of-sample design."))
+        "<b>Origin grid.</b> Every Friday t from {{first_origin}} to "
+        "{{last_origin}}, which gives {{n_origins}} origins. <b>Spot at t</b> is "
+        "the last EXCX135 fixing dated on or before t. <b>Target.</b> The "
+        "EXCX135 fixing 28 calendar days later, taking the last fixing on or "
+        "before that date when it falls on a holiday. The last target falls on "
+        "{{last_target}}, after the end of 2025, and {{n_targets_in_2025}} of the "
+        "{{n_origins}} targets fall inside 2025. Twenty-eight days keeps origin and "
+        "target on the same weekday. We did not rerun the exercise with calendar "
+        "months. <b>Information set at t.</b> Only values that were public by "
+        "17:00 Johannesburg time on the Friday, each joined on its publication "
+        "time, with the vintage then current for series that are revised "
+        "(section 3)."))
 
     # ---------------- 3. data ----------------
     E.append(para("3. Data", H1))
@@ -202,243 +199,280 @@ def main():
         "approximately 10:30 and weighted by their foreign exchange turnover. "
         "The SARB publishes it and EconData distributes it. We use the official "
         "EconData export as the primary source: dataset MARKET_RATES v1.0.0, "
-        "series key EXCX135.B.A, release &quot;ZARIBOR &amp; ZARONIA&quot;, "
-        "14 173 daily observations from 1970-01-02. Because a live API pull is "
-        "easier for anyone reproducing the work, the pipeline also downloads "
-        "the same series from the SARB Web API under code EXCX135D. "
-        "<b>verify_provenance.py confirms the two are numerically identical: "
-        "9 141 overlapping observations, maximum absolute difference 0.000000, "
-        "zero mismatches</b>, with an exact match across the 1 290 observations "
-        "covering the forecast window. Rerunning the entire backtest off each "
-        "source in turn gives RMSEs that agree to twelve decimal places, so a "
-        "judge can reproduce us from either. Citation: SARB. MARKET_RATES. "
-        "Version 1.0.0. Pretoria: SARB [producer]. Johannesburg: EconData "
-        "[distributor], 2026."))
+        "series key EXCX135.B.A, {{econdata_n}} daily observations from "
+        "{{econdata_first}}. The pipeline also downloads the same series from the "
+        "SARB Web API under code EXCX135D, and verify_provenance.py compares the "
+        "two: <b>{{overlap_n}} overlapping observations, largest absolute "
+        "difference {{overlap_max_diff}}, {{overlap_mismatches}} mismatches</b>, "
+        "including all {{window_overlap_n}} observations in the forecast window. "
+        "Citation: SARB. MARKET_RATES. Version 1.0.0. Pretoria: SARB [producer]. "
+        "Johannesburg: EconData [distributor], 2026."))
     E.append(para(
-        "<b>Predictors</b>, all daily and revision-free. JIBAR 3M from the SARB "
-        "and the US 3M Treasury bill from FRED, whose difference is the carry "
-        "signal. Gold at the London fixing, platinum futures from NYMEX and "
-        "Brent from FRED make up the commodity block, which matters because "
-        "South Africa exports two of those and imports the third. The Fed's "
-        "broad dollar index and the VIX capture dollar strength and global risk "
-        "appetite, both of which Codera's own published research on the rand "
-        "identifies as principal drivers. Two technical variables complete the "
-        "set: own momentum over four and twelve weeks, and the gap to the "
-        "200-day moving average. Estimation history starts in 1999 for USDZAR "
-        "and every feature is complete from 2009, so the first judged forecast "
-        "has roughly twelve years of training data behind it."))
+        "<b>Predictors.</b> JIBAR 3M from the SARB and the US 3M Treasury bill "
+        "from FRED, whose difference is the carry signal. Gold at the London "
+        "fixing, platinum futures from NYMEX and Brent from FRED make up the "
+        "commodity block: South Africa exports two of those and imports the "
+        "third. The Fed's broad dollar index and the VIX capture dollar strength "
+        "and global risk appetite. Technical variables complete the set: the "
+        "rand's own four- and twelve-week returns and its gap to the 200-day "
+        "moving average. Estimation history starts in {{history_start_year}}."))
     E.append(para(
-        "Restricting ourselves to market prices cost us some theoretically "
-        "attractive variables. Inflation differentials and the current account "
-        "both have a claim on a rand model. We left them out because macro "
-        "series are published with a lag and revised afterwards, so using "
-        "today's published history inside a simulated 2021 forecast would mean "
-        "using numbers that did not exist in 2021. Market prices are known "
-        "instantly and never revised. The trade buys us a guarantee against "
-        "look-ahead bias that no amount of careful coding could otherwise "
-        "provide, and we would make it again."))
-    E.append(img("input_series.png", 14.5))
-    E.append(para("Figure 3.1. Every series used in the model, sampled as of "
-                  "each Friday.", SMALL))
-    E.append(img("summary_statistics.png", 15.5))
-    E.append(para("Table 3.1. Observation counts split between the estimation "
-                  "era before 2021 and the forecast era from 2021 to 2025, with "
-                  "descriptive statistics.", SMALL))
-    E.append(PageBreak())
+        "<b>When each value is known.</b> The forecast is issued at 17:00 "
+        "Johannesburg time. The SARB rate and JIBAR are public that morning. The "
+        "gold fix is public that afternoon in UK summer and a day earlier in UK "
+        "winter. Platinum and the VIX are available to the Thursday close, the "
+        "T-bill rate to Wednesday, Brent to the Monday and the dollar index to the "
+        "previous Friday. The dollar index, Brent, the T-bill rate and the VIX "
+        "are revised, so each takes the value ALFRED, the St. Louis Fed's vintage "
+        "archive, showed at the time, and a four-week return takes both ends from "
+        "one vintage. Before a series' first vintage (for the dollar index, "
+        "{{usd_broad_first_vintage}}) the earliest vintage stands in, which is an "
+        "approximation. Each series' rule, source and reasoning is in "
+        "data/raw/series_metadata.json. The gold rule is the least certain: the "
+        "30 minutes after the auction is our allowance, not a published time. "
+        "Section 7 reports a rerun with every non-spot predictor a further week "
+        "late."))
+    E.append(para(
+        "<b>What is left out.</b> We used no inflation, current-account or GDP "
+        "series. They are published late and revised, and we hold no vintages "
+        "for them. Using today's published history in a simulated 2021 forecast "
+        "would use numbers that did not exist then."))
+    E.append(figure("input_series.png", 14.5,
+                    "Figure 3.1. Every series used in the models, as known at each "
+                    "Friday 17:00 issuance."))
+    E.append(figure("summary_statistics.png", 15.5,
+                    "Table 3.1. Observation counts split between the estimation era "
+                    "before 2021 and the forecast era from 2021 to 2025, with "
+                    "descriptive statistics."))
 
     # ---------------- 4. methodology ----------------
     E.append(para("4. Methodology", H1))
-    E.append(para("4.1 The baseline, implemented faithfully", H2))
+    E.append(para("4.1 The baseline", H2))
     E.append(para(
-        f"AR(1) with intercept on the weekly log USDZAR level, re-estimated by "
-        f"OLS on an expanding window from 1999 at every origin and iterated "
-        f"four steps ahead. Its judged-window RMSE is {fmt(base)}. The log "
-        f"version is the benchmark in every comparison. The same model in raw "
-        f"levels appears as a variant only. Economically, an estimated persistence "
-        f"below one drags each forecast toward the implied long-run mean, and "
-        f"section 1 gives the arithmetic of why that is expensive here. As a "
-        f"single illustration, at the origin of the worked example in section 6, "
-        f"3 June 2022, the fit on 1 222 weekly observations gave c = 0.006335 "
-        f"and phi = 0.997531, an implied long-run mean of R13.01 and a shock "
-        f"half-life of 280 weeks. Spot that day was R15.41."))
+        "AR(1) with intercept on the weekly log USDZAR level, re-estimated by "
+        "OLS on an expanding window at every origin and iterated four steps "
+        "ahead. Its judged-window RMSE is {{rmse_ar1_log}}. It was fixed as the "
+        "benchmark before scoring. Three variants appear only as exploratory "
+        "comparisons: the same model on the level ({{rmse_ar1_level}}), on a "
+        "five-year window ({{rmse_ar1_log_roll}}), and with a retransformation "
+        "correction ({{rmse_ar1_log_vc}}). The correction matters because the "
+        "exponential of a forecast of the log is a median, not a mean, under "
+        "normal errors. For the log AR(1) the level the forecast is pulled towards "
+        "is exp(c/(1-phi)), the equilibrium of the log. It is fragile near a unit "
+        "root: phi ran from {{phi_min}} to {{phi_max}} across the origins, so "
+        "1-phi ran from {{one_minus_phi_min}} to {{one_minus_phi_max}}, and the "
+        "level ranged from R{{mu_min}} to R{{mu_max}}. At the worked-example "
+        "origin, {{ex_origin}}, the fit on {{ex_ar1_n}} weekly observations gave "
+        "c = {{ex_ar1_c}} and phi = {{ex_ar1_phi}}, a level of R{{ex_ar1_mu}} and "
+        "a shock half-life of {{ex_half_life}} weeks. Spot that day was "
+        "R{{ex_spot_short}}."))
     E.append(para("4.2 Component models", H2))
     E.append(para(
-        "<b>Random walk.</b> The forecast is today's rate. At this horizon it "
-        "is the strongest single benchmark anyone has found, and it anchors our "
-        "combination. <b>Carry, or the forward rate.</b> Covered interest "
-        "parity ties the forward rate to the interest differential, so the "
-        "forecast is the spot rate multiplied by one plus the JIBAR minus "
-        "T-bill gap scaled to 28 days. Uncovered parity fails empirically, "
-        "which is why the carry trade has paid for decades, so we treat this as "
-        "one informative view rather than a truth. <b>Ridge regression.</b> The "
-        f"four-week log return regressed on the {RIDGE_SET} predictor set: "
-        f"{PREDICTORS}. The penalty is chosen every quarter by five-fold "
-        "time-ordered cross-validation on the training rows. A training row "
-        "whose outcome date falls on or after the start of the fold it is "
-        "scored against is purged, and the predictors are standardised "
-        "inside each fold, so the scaling never uses the rows being scored. "
-        "We fit no intercept, which "
-        "matters: under heavy shrinkage the predicted return goes to zero and "
-        "the model collapses to the random walk instead of drifting toward a "
-        "stale average, which is precisely the failure mode of the AR(1). "
-        "Training rows are restricted to origins whose 28-day outcome had "
-        "already resolved, so the regression never sees an unresolved target. "
-        f"<b>Gradient boosting.</b> A HistGradientBoosting comparator on the "
-        f"same rows. Once a year the same purged cross-validation picks its "
-        f"depth, learning rate, iteration count, L2 penalty and leaf size from "
-        f"{len(VAL['gbm']['grid'])} configurations. It is there to measure "
-        f"what flexibility costs at this horizon."))
-    E.append(para("4.3 The combination, and the honesty protocol", H2))
+        "<b>Random walk.</b> The forecast is today's rate. <b>Carry.</b> Covered "
+        "interest parity ties the forward rate to the interest differential, so "
+        "the forecast is the spot rate multiplied by one plus the JIBAR minus "
+        "T-bill gap scaled to 28 days. A forward prices a contract that can be "
+        "locked in today. It is not the expected future spot rate, and uncovered "
+        "parity generally fails, so we treat carry as one component and make no "
+        "claim that it forecasts well alone. The inputs also differ in kind (a "
+        "bank rate against a government bill) and in tenor (three months against "
+        "a 28-day horizon). <b>Ridge regression.</b> The four-week log return "
+        "regressed on the {{chosen_ridge_desc}}: " + PREDICTORS + ". The penalty "
+        "is re-selected every 13 origins by five-fold time-ordered "
+        "cross-validation. A training row whose target date falls on or after "
+        "the start of the fold it is scored against is purged, and the "
+        "predictors are standardised inside each fold. Training rows are "
+        "restricted to origins whose 28-day outcome had already resolved. With "
+        "no intercept, heavy shrinkage collapses the model to the random walk. "
+        "<b>Gradient boosting.</b> A HistGradientBoosting comparator on the same "
+        "rows. Every {{gbm_retune_every}} weeks the same purged "
+        "cross-validation picks its depth, learning rate, iteration count, L2 "
+        "penalty and leaf size from {{gbm_grid_n}} configurations."))
+    E.append(para("4.3 The combination and the selection step", H2))
     E.append(para(
-        f"The headline model weights the random walk, carry and ridge by "
-        f"inverse discounted mean squared error over resolved past forecasts "
-        f"only, with a 28-day embargo, a window of 156 resolved origins, decay "
-        f"{cfg['delta']} and sharpness {cfg['theta']:.0f}. Recent errors count "
-        f"for more, so weight migrates toward whatever suits the current "
-        f"regime. Every free choice in that sentence, meaning the ridge feature "
-        f"set, the intercept decision, the decay and the sharpness, was "
-        f"selected on {VAL['validation_era']['COMBO']['n']} validation origins "
-        f"from {long_date(vw['first_origin'])} to {long_date(vw['last_origin'])}, "
-        f"and then frozen. The last of them is the final Friday whose target, "
-        f"{long_date(vw['last_target'])}, falls before 2021. The judged window "
-        f"was never used to make a modelling decision, and "
-        f"validation_metrics.json in the submission carries the full search "
-        f"grid. Weights for the 2021 forecasts were warmed up on 2013 to 2020 "
-        f"forecasts, which are themselves out of sample."))
-    E.append(para(
-        "This last point is the one we would defend hardest. Most teams will "
-        "remember not to put future data inside a model. Fewer will notice that "
-        "the modeller is also a channel for future information: try twenty "
-        "configurations on 2021 to 2025 and report the best, and that best "
-        "number is partly luck. Choosing the configuration on an earlier era "
-        "and freezing it means our judged-window result is the first time those "
-        "settings met that data."))
+        "The combination weights the random walk, carry and ridge by inverse "
+        "discounted mean squared error over resolved past forecasts only, with a "
+        "28-day embargo, a window of 156 resolved origins, decay {{chosen_delta}} "
+        "and sharpness {{chosen_theta}}. The ridge variant, the decay and the "
+        "sharpness were selected on {{val_n}} validation origins from "
+        "{{val_first}} to {{val_last}}. The last of them is the final Friday whose "
+        "target, {{val_last_target}}, falls before 2021, and the code asserts it. "
+        "The chosen ridge variant is {{chosen_ridge_tag}} and the full grid of "
+        "{{n_grid}} configurations is in validation_metrics.json. Validation "
+        "scores were used to pick the configuration, so they are not independent "
+        "evidence. The surface is flat: the fifth-best configuration is "
+        "{{val_top5_gap}} worse than the best. Weights for the first judged "
+        "forecasts were warmed up on walk-forward forecasts from 2013."))
 
     # ---------------- 5. results ----------------
     E.append(para("5. Results", H1))
-    E.append(results_table())
-    E.append(para(
-        f"Table 5.1. Judged window 2021-01-01 to 2025-12-31, n = "
-        f"{MET['COMBO']['n']}. DM is the Diebold-Mariano statistic against the "
-        f"AR(1) baseline with Newey-West variance at lag 3, appropriate for "
-        f"forecasts that overlap by construction; a negative value favours the "
-        f"row model. On the robustness cut with targets restricted to inside "
-        f"2025, the combination scores "
-        f"{fmt(MET['_targets_within_window']['COMBO'])} against "
-        f"{fmt(MET['_targets_within_window']['AR1_log'])} for the AR(1) and "
-        f"{fmt(MET['_targets_within_window']['RW'])} for the random walk, and "
-        f"leads every model we ran.", SMALL))
-    E.append(img("rmse_by_model.png", 14.5))
-    E.append(para("Figure 5.1. RMSE by model with values printed on the bars. "
-                  "The axis starts at 0.50 so that differences of this size are "
-                  "visible.", SMALL))
-    E.append(img("rmse_difference_ci.png", 15.0))
-    E.append(para("Figure 5.2. RMSE difference from the random walk and from the "
-                  "AR(1) baseline, with 95% Newey-West intervals. Filled points "
-                  "are the two prespecified comparisons.", SMALL))
-    E.append(PageBreak())
-    E.append(img("cumulative_error_difference.png", 15.0))
-    E.append(para(
-        "Figure 5.3. Cumulative squared-error difference against the AR(1). The "
-        "line moves either side of zero through 2021 and ends that year barely "
-        "ahead at 0.09. It then climbs through the 2022 and 2023 depreciation, "
-        "which is exactly when mean reversion costs the baseline most, reaching "
-        "1.19 by the end of 2023 and peaking at 1.29. Some of that is given "
-        "back over 2024 and 2025, and the series finishes at 0.69. We show the "
-        "give-back rather than crop the chart at its peak.", SMALL))
-    E.append(img("rmse_by_year.png", 14.5))
-    E.append(para(
-        "Figure 5.4. RMSE by year. We win four years of five. The 2025 loss is "
-        "informative: the rand strengthened that year and moved back toward "
-        "the baseline's long-run mean, so its built-in bias finally paid. That "
-        "regime dependence is the argument for combining models rather than "
-        "committing to one.", SMALL))
-    E.append(img("forecasts_vs_actual.png", 15.0))
-    E.append(para("Figure 5.5. Forecasts plotted at their target dates against "
-                  "the realised series.", SMALL))
-    E.append(img("combination_weights.png", 15.0))
-    E.append(para(
-        "Figure 5.6. Combination weights through time, computed from resolved "
-        "errors only. The random walk's role as anchor was learned from "
-        "performance and never imposed.", SMALL))
+    E += table(filled(TABLES["results"]), [4.9, 1.9, 1.9, 2.8, 1.5, 2.4], "Combination",
+               "Table 5.1. Judged window, n = {{n_origins}}. RMSE below AR(1) is the "
+               "per cent by which a model's RMSE is under the benchmark's, so a "
+               "positive value favours the model. Rank is by RMSE across the "
+               "{{n_models}} models. The first row is the mandated benchmark; "
+               "the AR(1) variants, the drift, the equal-weight average and the "
+               "two adaptive pairs are exploratory. On the strict cut, with "
+               "targets inside 2025 only, the combination scores {{strict_combo}}, "
+               "the AR(1) {{strict_ar1_log}} and the random walk {{strict_rw}}. "
+               "That cut is a subset of the same data.")
+    E.append(figure("rmse_by_model.png", 12.0,
+                    "Figure 5.1. RMSE by model. The axis starts at zero, so the bars "
+                    "look level: the differences are in the third decimal place. "
+                    "Figure 5.2 shows them with intervals."))
+    E.append(figure("rmse_difference_ci.png", 13.0,
+                    "Figure 5.2. RMSE difference from the random walk and from the "
+                    "AR(1), with 95% Newey-West intervals (lag 3). Filled points "
+                    "are the two prespecified comparisons. Left of zero means the "
+                    "model is more accurate."))
+    E += table(filled(prespecified_rows()), [3.6, 1.6, 1.4, 4.2, 2.2, 4.0], None,
+               "Table 5.2. The two prespecified comparisons. DM is the "
+               "Diebold-Mariano statistic on squared error with a Newey-West "
+               "variance; a negative value favours the combination. The last "
+               "column shows the range of p-values over HAC lags 3, 4, 8 and an "
+               "automatic choice, which was {{auto_lag_ar1}} against the AR(1) and "
+               "{{auto_lag_rw}} against the random walk. The RMSE interval against the AR(1), holding the "
+               "benchmark's MSE fixed, is {{rmse_ci_combo_ar1_lo}} to "
+               "{{rmse_ci_combo_ar1_hi}}.")
+    E += table(filled(TABLES["dm"]), [4.9, 1.8, 1.4, 1.6, 1.8, 1.4, 1.6], "Combination (prespecified)",
+               "Table 5.3. Every model against both benchmarks at HAC lag 3. The "
+               "{{n_exploratory}} distinct exploratory hypotheses are adjusted "
+               "together by Holm's method ({{n_exploratory_unadjusted}} have an "
+               "unadjusted p below 0.05, {{n_holm_significant}} survive). n/a marks "
+               "the prespecified comparisons, which are not adjusted.")
+    E.append(figure("cumulative_error_difference.png", 14.0,
+                    "Figure 5.3. Cumulative squared-error difference, positive when "
+                    "the combination is ahead. Against the AR(1) it ends 2021 at "
+                    "{{cum_end_2021}}, 2022 at {{cum_end_2022}}, 2023 at "
+                    "{{cum_end_2023}} and 2024 at {{cum_end_2024}}, peaks at "
+                    "{{cum_peak}} on {{cum_peak_date}} and finishes at "
+                    "{{cum_final}}. The line against the random walk stays much "
+                    "closer to zero."))
+    E.append(figure("rmse_by_year.png", 14.0,
+                    "Figure 5.4. RMSE by calendar year of origin. The combination is "
+                    "lower than the AR(1) in {{years_ahead_n}} of {{years_n}} years "
+                    "({{years_ahead}}). In {{years_behind}} the AR(1) scored "
+                    "{{behind_ar1}} against {{behind_combo}} for the combination. We "
+                    "have not tested why. Five annual figures cannot show whether "
+                    "the pattern is stable."))
+    E.append(figure("forecasts_vs_actual.png", 14.0,
+                    "Figure 5.5. Forecasts plotted at their target dates against the "
+                    "realised series."))
+    E.append(figure("combination_weights.png", 14.0,
+                    "Figure 5.6. Combination weights through time, computed from "
+                    "resolved errors only. They stay between {{w_min}} and "
+                    "{{w_max}}, close to one third each."))
 
     # ---------------- 6. discussion ----------------
-    E.append(para("6. Discussion and business intuition", H1))
+    E.append(para("6. Discussion", H1))
     E.append(para(
-        "Why are all the differences so small? Because at one month USDZAR is "
-        "close to informationally efficient. Public information reaches the "
-        "price in minutes, not weeks, so what remains to forecast is a small "
-        "and unstable residual. This is the Meese-Rogoff result and it remains "
-        "the professional consensus (Rossi 2013). It is also, in substance, "
-        "Codera's own published position on FX modelling: a suite of simple "
-        "models, monitored over time and combined, which harvests modest "
-        "edges."))
+        "The differences between the leading models are small: the {{n_rw_family}} "
+        "models built from the random walk, carry and ridge fall within "
+        "{{rmse_spread_rw_family}} of each other in RMSE. A common explanation is "
+        "that USDZAR is priced by a deep market, so public information is in the "
+        "price quickly and a month-ahead forecast is left with a small residual. "
+        "That is plausible and consistent with Meese and Rogoff (1983) and the "
+        "survey by Rossi (2013), but nothing here tests it."))
     E.append(para(
-        "Our edge comes from three places we can point at. The baseline's "
-        "downward bias, quantified in section 1, is costly in a trend and we "
-        "avoid it by anchoring on the current price instead. The forward "
-        "rate carries real information when the differential is wide, which is "
-        "why carry was the single best model of 2022 and 2023. Commodity, "
-        "dollar and risk factors add a little signal through a regression "
-        "shrunk hard enough that it barely departs from the anchor. At the "
-        "final origin, cross-validation chose a penalty of 10 000 and the "
-        "fitted coefficients came out at roughly eight per cent of their OLS "
-        "values, which is the model telling us, without being asked, that the "
-        "honest signal here is very weak."))
+        "The combination is almost the random walk. Its forecasts differ from "
+        "spot by {{combo_mean_abs_dev_pct}} per cent on average. It forecast a "
+        "rise at {{combo_up_pct}} per cent of origins, because carry's tilt is "
+        "always upward, while the rand rose at {{realized_up_pct}} per cent of "
+        "them, so its directional accuracy ({{combo_dir_acc_pct}} per cent) is just "
+        "the share of rises. It carries no directional information. Adaptive "
+        "weighting did not help: equal weights scored {{rmse_equal3}} against "
+        "{{rmse_combo}}, and the largest gap among the three ablations is "
+        "{{ablation_max_gap}}."))
     E.append(para(
-        f"The gradient-boosting comparator shows the other side of that coin. "
-        f"With about 850 overlapping weekly observations and a tiny signal, a "
-        f"learner that can fit thresholds and interactions will find plenty of "
-        f"both, and they turn out to be properties of that stretch of history "
-        f"rather than of the currency. It loses by {gbm:.1f} per cent under "
-        f"identical conditions. The M4 and M5 competitions reached the same "
-        f"conclusion across thousands of series: combinations of simple models "
-        f"beat complex single models."))
+        "What we can say about the AR(1) is descriptive. It forecast a rise at "
+        "{{ar1_up_pct}} per cent of origins, its mean error was {{ar1_bias}} "
+        "against {{combo_bias}} for the combination, and squared bias is "
+        "{{ar1_bias_share_pct}} per cent of its mean squared error. The "
+        "difference in squared bias is {{bias_share_of_gap_pct}} per cent of the "
+        "gap in mean squared error between the AR(1) and the combination, and the "
+        "rest is variance. A mean-reverting model does better in a sample where "
+        "the series reverts. We do not claim that the downward lean is the full "
+        "explanation or that it persists."))
     E.append(para(
-        "Two results cut against us and we would rather present them than be "
-        "shown them. The baseline is competitive on MAE. It scores "
-        f"{fmt(MET['AR1_log']['mae'])} against our "
-        f"{fmt(MET['COMBO']['mae'])}: its typical error is fine and it loses "
-        "on RMSE specifically because mean reversion produces occasional large "
-        "misses. And directional accuracy sits near 50 per cent for every model "
-        "we ran. We report that rather than optimise a metric the task does not "
-        "judge, but it is a fair summary of how little directional information "
-        "is available at this horizon."))
+        "Gradient boosting scored {{rmse_gbm}}, {{gbm_worse_than_ar1_pct}} per "
+        "cent above the AR(1) and {{gbm_worse_than_rw_pct}} per cent above the "
+        "random walk. Neither difference is statistically significant (p = "
+        "{{gbm_p_vs_ar1}} and {{gbm_p_vs_rw}}). The M5 accuracy results paper "
+        "(Makridakis, Spiliotis and Assimakopoulos, 2022, International Journal "
+        "of Forecasting) reports that the top methods were machine-learning "
+        "methods, mostly LightGBM, and that combinations helped. So that "
+        "evidence does not say that simple methods beat flexible ones, and our "
+        "boosting result covers one specification on one series. It is also "
+        "sensitive to the release-lag assumptions: with every non-spot predictor "
+        "a week later its RMSE moves from {{timing_gbm_base}} to "
+        "{{timing_gbm_extra}}, while the combination moves from "
+        "{{timing_combo_base}} to {{timing_combo_extra}}."))
+    E.append(para(
+        "The AR(1) and the combination have MAEs of {{mae_ar1_log}} and "
+        "{{mae_combo}}. Over {{roll_windows}} rolling {{roll_weeks}}-week windows "
+        "the combination had the lower RMSE in {{roll_share}} per cent of them, "
+        "with a ratio to the AR(1) between {{roll_best}} and {{roll_worst}}. "
+        "Adjacent windows share most of their origins, so that is one comparison "
+        "seen through a moving frame."))
 
     # ---------------- 7. limitations ----------------
-    E.append(para("7. Limitations", H1))
+    E.append(para("7. Limitations, exploratory status and a prospective test", H1))
     E.append(para(
-        f"The improvement is not statistically significant. The "
-        f"Diebold-Mariano p-value against the baseline is "
-        f"{MET['COMBO']['dm_vs_ar1'][1]:.2f}. We claim consistency instead: the combination beats the "
-        f"baseline in four years of five, on the full window, on the robustness "
-        f"cut, and in the validation era it never saw. Consistency across "
-        f"independent cuts is real evidence, but it is not significance and we "
-        f"do not present it as such."))
+        "<b>Exploratory status.</b> The window was scored repeatedly during "
+        "development and repair, benchmarks and ablations were added after "
+        "results had been seen, and no new holdout was added. The two prespecified "
+        "comparisons are labelled in the code and the outputs, but nothing "
+        "registered them outside the repository. <b>Not significant.</b> Neither "
+        "prespecified comparison rejects at 5 per cent, and none of the "
+        "{{n_exploratory}} exploratory comparisons survives the Holm adjustment "
+        "(smallest adjusted p = {{min_holm_p}})."))
     E.append(para(
-        "The obvious objection to the whole exercise is that our combination "
-        "sits within a thousandth of the random walk on the full window, so a "
-        "sceptic could reasonably ask what the machinery buys. Two answers. On "
-        "the robustness cut the combination is ahead of the random walk rather "
-        "than level with it. The second answer matters more. The combination is "
-        "the random walk plus insurance. When carry held information in 2022 "
-        "and 2023 the weights moved toward it; when nothing worked in 2024 and "
-        "2025 they "
-        "collapsed back to the anchor. A fixed no-change rule cannot do that, "
-        "and we did not have to know in advance which regime was coming. We "
-        "accept that this is an argument about process rather than a decisive "
-        "number."))
+        "<b>Planning table.</b> The table gives the number of weekly origins at "
+        "which a two-sided 5 per cent test would detect an RMSE reduction fixed "
+        "in advance, with 80 per cent power. It depends on its assumptions: the "
+        "standard deviation of the loss differential and the benchmark's MSE "
+        "stay at their 2021 to 2025 values, and the effect sizes are round "
+        "numbers, not a claim about what has been achieved elsewhere. Against "
+        "the AR(1), a 2 per cent reduction needs {{plan_ar1_2_n}} origins "
+        "({{plan_ar1_2_years}} years) and a 1 per cent reduction {{plan_ar1_1_n}} "
+        "({{plan_ar1_1_years}} years). Against the random walk the requirements "
+        "are small only because the combination and the random walk are nearly "
+        "the same forecast, which keeps the loss differential's standard "
+        "deviation at {{plan_rw_sd}}. A 1 to 5 per cent reduction between two "
+        "forecasts that differ by {{combo_mean_abs_dev_pct}} per cent of spot is "
+        "implausible, so those rows show what the test could detect, not what "
+        "a holdout should be expected to find. The table says nothing about any "
+        "other forecaster."))
+    E += table(filled(TABLES["plan_ar1"]), [3.0, 3.6, 4.6, 4.0], None,
+               "Table 7.1. Planning table against the AR(1).")
+    E += table(filled(TABLES["plan_rw"]), [3.0, 3.6, 4.6, 4.0], None,
+               "Table 7.2. Planning table against the random walk.")
     E.append(para(
-        "We also make no claim about profitability. RMSE accuracy and return "
-        "after transaction costs are different objectives and we tested only "
-        "the first. Extensions we would pursue, in order of promise: "
-        "option-implied volatility and risk reversals, since the SARB's own "
-        "working paper WP/22/14 finds that information about the distribution "
-        "of rand returns improves forecasts; sovereign CDS spreads as a cleaner "
-        "measure of South Africa-specific risk than the global VIX; Bayesian "
-        "model averaging over a wider component set; and density rather than "
-        "point forecasts, which is where forecasting a near-random-walk series "
-        "genuinely earns its keep for anyone deciding whether to hedge."))
+        "<b>Prospective-holdout protocol.</b> (1) Freeze the design: record the "
+        "git commit, the chosen configuration and the raw-data snapshot date, "
+        "publish them before the first new origin, and change nothing afterwards "
+        "except recorded bug fixes. (2) Prespecify the two comparisons, squared "
+        "error, Newey-West lag 3, two-sided 5 per cent, and treat everything "
+        "else as exploratory with a Holm adjustment. (3) Fix the sample size and "
+        "stop date from the planning table before the first origin. (4) Score each "
+        "origin once, after its target is fixed, in a log that is only appended "
+        "to. (5) Report the result whatever it is."))
+    E.append(para(
+        "<b>Other limitations.</b> Overlapping four-week forecasts and the "
+        "overlapping cuts (the strict cut, by-year results and rolling windows) are "
+        "views of the same {{n_origins}} errors, not independent checks. The "
+        "release lags are partly judgement. We tested one alternative, a further "
+        "week for every non-spot predictor: the combination's RMSE moved by "
+        "{{timing_max_other_change}} or less for every model except gradient "
+        "boosting, which moved by {{timing_gbm_change}}. We make no claim about "
+        "profitability. RMSE and trading return are different objectives."))
+    E.append(para(
+        "<b>Extensions.</b> Option-implied volatility and risk reversals, since "
+        "the SARB's working paper WP/22/14 reports that information about the "
+        "distribution of rand returns improves its forecasts; Bayesian model "
+        "averaging over a wider component set; horizons of 1, 2, 8 and 12 weeks; "
+        "and density rather than point forecasts, which matter more to anyone "
+        "deciding whether to hedge."))
 
     # ---------------- 8. AI, code, reproducibility ----------------
     E.append(para("8. Use of AI, code and reproducibility", H1))
@@ -451,14 +485,14 @@ def main():
         "that every component can be derived by hand under questioning. Nothing "
         "in the pipeline is a black box to us."))
     E.append(para(
-        "The full pipeline reruns end to end with one command, is "
-        "deterministic, needs no paid data, and takes about four minutes. Every "
-        "number printed in this report is read from metrics.json at build time "
-        "rather than typed in, so the document cannot drift from the results. "
-        "All 261 forecasts are logged to forecast_log.csv with their origin "
-        "date, target date, each model's forecast and the realised value, which "
-        "means our headline RMSE can be recomputed from the submitted file in a "
-        "single line."))
+        "The full pipeline reruns end to end with one command, python "
+        "src/run_all.py. By default it needs no network access, no paid data and "
+        "no API key, because the raw files are committed. Every number in this "
+        "report is read from the saved JSON outputs at build time, so the text "
+        "cannot drift from the results. All {{n_origins}} forecasts are logged to "
+        "forecast_log.csv with their origin date, target date, each model's "
+        "forecast and the realised value, so each RMSE here can be recomputed "
+        "from that file in a single line."))
 
     # ---------------- 9. references ----------------
     E.append(para("9. References", H1))
@@ -466,16 +500,23 @@ def main():
         "Amat, C., T. Michalski and G. Stoltz (2018). Fundamentals and "
         "exchange rate forecastability with simple machine learning methods. "
         "Journal of International Money and Finance 88, 1-24.",
-        "Codera Analytics (2024-25). What drives the rand?; USDZAR Forecasts. "
-        "codera.co.za.",
+        "Andrews, D. W. K. (1991). Heteroskedasticity and autocorrelation "
+        "consistent covariance matrix estimation. Econometrica 59(3).",
         "Darvas, Z. (2020). Forecasting exchange rates of major currencies "
         "with long maturity interest rates. Bruegel Working Paper 2020/02.",
-        "Makridakis, S., E. Spiliotis and V. Assimakopoulos (2020, 2022). The "
-        "M4 and M5 accuracy competitions: results, findings and conclusions. "
-        "International Journal of Forecasting.",
+        "Diebold, F. X. and R. S. Mariano (1995). Comparing predictive accuracy. "
+        "Journal of Business and Economic Statistics 13(3), 253-263.",
+        "Holm, S. (1979). A simple sequentially rejective multiple test "
+        "procedure. Scandinavian Journal of Statistics 6(2).",
+        "Makridakis, S., E. Spiliotis and V. Assimakopoulos (2022). M5 accuracy "
+        "competition: results, findings, and conclusions. International Journal "
+        "of Forecasting.",
         "Meese, R. and K. Rogoff (1983). Empirical exchange rate models of the "
         "seventies: do they fit out of sample? Journal of International "
         "Economics 14, 3-24.",
+        "Newey, W. K. and K. D. West (1987). A simple, positive semi-definite, "
+        "heteroskedasticity and autocorrelation consistent covariance matrix. "
+        "Econometrica 55(3).",
         "Rossi, B. (2013). Exchange rate predictability. Journal of Economic "
         "Literature 51(4), 1063-1119.",
         "South African Reserve Bank (2022). Working Paper WP/22/14: can the "
@@ -483,7 +524,7 @@ def main():
     ]:
         E.append(para("- " + r, SMALL))
 
-    doc.build(E)
+    doc.build(E, onFirstPage=footer, onLaterPages=footer)
     print("report written:", REP / "technical_report.pdf")
 
 

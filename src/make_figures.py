@@ -201,10 +201,12 @@ def main() -> None:
         "max": w[["spot", "carry_diff", "gold", "platinum", "brent",
                   "usd_broad", "vix"]].max().round(3)})
     tbl.to_csv(PROC / "table_summary_stats.csv")
-    fig, ax = plt.subplots(figsize=(8.6, 2.6)); ax.axis("off")
-    t = ax.table(cellText=tbl.values, rowLabels=tbl.index,
-                 colLabels=tbl.columns, loc="center", cellLoc="center")
-    t.auto_set_font_size(False); t.set_fontsize(7); t.scale(1, 1.25)
+    fig, ax = plt.subplots(figsize=(8.6, 2.8)); ax.axis("off")
+    shown = tbl.rename(columns={"obs_estimation_era(<2021)": "obs before 2021",
+                                "obs_forecast_era(2021-25)": "obs 2021-25"})
+    t = ax.table(cellText=shown.values, rowLabels=shown.index,
+                 colLabels=shown.columns, loc="center", cellLoc="center")
+    t.auto_set_font_size(False); t.set_fontsize(8); t.scale(1, 1.6)
     ax.set_title("Summary statistics - weekly (Friday) series", fontsize=10)
     fig.tight_layout(); fig.savefig(FIG / "summary_statistics.png")
     plt.close(fig)

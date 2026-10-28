@@ -447,6 +447,61 @@ check("weight min, max and mean, overall and by year, reproduce",
       worst < 1e-12, f"{len(groups) - 1} years")
 
 # ---------------------------------------------------------------------------
+# 12. The numbers the documents quote about the AR(1)'s implied mean, the
+#     cumulative error difference and the worked example
+# ---------------------------------------------------------------------------
+print("\n12. AR(1) IMPLIED MEAN, CUMULATIVE ERROR, WORKED EXAMPLE")
+mech = DIA["ar1_implied_mean"]
+phis, mus = [], []
+for t in log["origin"]:
+    y = np.log(px[px.friday <= t]["spot"].values)
+    c_t, phi_t = np.linalg.lstsq(np.column_stack([np.ones(len(y) - 1), y[:-1]]),
+                                 y[1:], rcond=None)[0]
+    phis.append(phi_t)
+    mus.append(np.exp(c_t / (1 - phi_t)))
+phis, mus = np.array(phis), np.array(mus)
+gaps = log["spot"].values - mus
+check("AR(1) persistence range and implied-mean range reproduce",
+      close(phis.min(), mech["phi_min"], 1e-12) and close(phis.max(), mech["phi_max"], 1e-12)
+      and close(mus.min(), mech["mu_min"], 1e-9) and close(mus.max(), mech["mu_max"], 1e-9),
+      f"phi {phis.min():.4f} to {phis.max():.4f}, mu R{mus.min():.2f} to R{mus.max():.2f}")
+check("implied mean below spot: count, mean gap and smallest gap reproduce",
+      mech["n_below_spot"] == int((mus < log["spot"].values).sum())
+      and close(gaps.mean(), mech["mean_gap"], 1e-9)
+      and close(gaps.min(), mech["min_gap"], 1e-9),
+      f"{mech['n_below_spot']} of {len(log)}, mean gap R{gaps.mean():.2f}")
+check("first and highest spot at an origin reproduce",
+      close(log["spot"].iloc[0], mech["spot_first"], 1e-12)
+      and close(log["spot"].max(), mech["spot_peak"], 1e-12),
+      f"R{mech['spot_first']:.2f} to R{mech['spot_peak']:.2f}")
+
+cum = np.cumsum(err["AR1_log"] ** 2 - err["COMBO"] ** 2)
+cum_s = pd.Series(cum, index=log["origin"])
+cs = DIA["cumulative_se"]
+check("cumulative squared-error difference: final, peak, peak date, year ends",
+      close(cum[-1], cs["final"], 1e-9) and close(cum.max(), cs["peak"], 1e-9)
+      and str(cum_s.idxmax().date()) == cs["peak_origin"]
+      and all(close(g.iloc[-1], cs["end_of_year"][str(y)], 1e-9)
+              for y, g in cum_s.groupby(cum_s.index.year)),
+      f"peak {cs['peak']:.3f} on {cs['peak_origin']}, final {cs['final']:.3f}")
+
+ex = DIA["worked_example"]
+row = log[log["origin"] == pd.Timestamp(ex["origin"])].iloc[0]
+wr = w.loc[pd.Timestamp(ex["origin"])]
+y = np.log(px[px.friday <= pd.Timestamp(ex["origin"])]["spot"].values)
+c_x, phi_x = np.linalg.lstsq(np.column_stack([np.ones(len(y) - 1), y[:-1]]),
+                             y[1:], rcond=None)[0]
+check("worked example: forecasts, errors, weights and AR(1) fit reproduce",
+      all(close(row[m], ex["forecast"][m], 1e-9)
+          and close(row[m] - row["realized"], ex["error"][m], 1e-9)
+          for m in ex["forecast"])
+      and all(close(wr[m], ex["weights"][m], 1e-12) for m in ex["weights"])
+      and close(c_x, ex["ar1"]["c"], 1e-12) and close(phi_x, ex["ar1"]["phi"], 1e-12)
+      and ex["ar1"]["n_obs"] == len(y)
+      and close(sum(wr[m] * row[m] for m in ex["weights"]), row["COMBO"], 1e-9),
+      f"{ex['origin']}, weights sum to COMBO {row['COMBO']:.4f}")
+
+# ---------------------------------------------------------------------------
 print("\n" + "=" * 78)
 print(f"RESULT: {len(PASS)} passed, {len(FAIL)} failed")
 if FAIL:

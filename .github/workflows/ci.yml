@@ -32,6 +32,7 @@ jobs:
 
       - run: python src/validate_results.py
 
-      # The numeric outputs must match what is committed. Figures, the PDF and
-      # the deck embed timestamps and renderer details, so they are not compared.
-      - run: git diff --exit-code -- data/processed
+      # The numeric outputs and the generated text must match what is committed.
+      # Figures, the PDF and the deck embed timestamps and renderer details, so
+      # they are not compared.
+      - run: git diff --exit-code -- data/processed README.md docs/METHODOLOGY.md

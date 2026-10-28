@@ -28,6 +28,7 @@ PY_STEPS = [
     ("make_figures.py", "report figures"),
     ("make_presentation_figures.py", "presentation figures"),
     ("validate_results.py", "independent audit of the outputs"),
+    ("render_docs.py", "fill the README and methodology from the outputs"),
     ("make_report.py", "build the technical report PDF"),
     ("build_notebook.py", "regenerate and execute the walkthrough notebook"),
 ]

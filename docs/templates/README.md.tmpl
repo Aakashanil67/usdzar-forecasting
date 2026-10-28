@@ -1,0 +1,39 @@
+# Forecasting the rand one month ahead
+
+This project forecasts the South African rand against the US dollar four weeks ahead, once a week, for {{n_origins}} Fridays from {{first_origin}} to {{last_origin}}, and scores each forecast against what the rand did. It began as an entry to the SES x Codera Analytics hackathon in July 2026 (team Spurious Decision: Aakash Anil and Stefan von der Heyden, Stellenbosch University). The hackathon required one benchmark, a simple statistical rule called an AR(1) that projects the rate forward from its own history. I have kept working on it since.
+
+## What I found
+
+The score is the typical size of the miss in rand per dollar (RMSE). Lower is better.
+
+| Forecast | Typical miss |
+|:---|---:|
+| AR(1), the required benchmark | {{rmse_ar1_log}} |
+| "No change": next month's rate equals today's | {{rmse_rw}} |
+| My blend of three simple forecasts | {{rmse_combo}} |
+| The same three forecasts, equally weighted | {{rmse_equal3}} |
+| Gradient boosting, a machine-learning model | {{rmse_gbm}} |
+
+The blend scored {{gain_vs_ar1}} per cent better than the AR(1). With {{n_origins}} forecasts a gap that small is well within what luck produces, and the standard test agrees (p = {{p_combo_ar1}}). Against "no change" the difference is {{gain_vs_rw}} per cent (p = {{p_combo_rw}}), so the blend is in practice the no-change forecast with a small tilt. Weighting the three forecasts by their recent accuracy did no better than weighting them equally, and gradient boosting did worst of everything I tried.
+
+The AR(1) pulls its forecasts towards a long-run level that sat below the market at {{n_below_spot}} of {{n_origins}} origins, and it never forecast a rise. That describes how it missed. I have not shown that it is why it lost.
+
+Treat every 2021 to 2025 number as exploratory. The window was scored many times while the code was built and repaired, and the list of comparisons grew along the way. A clean test needs forecasts made after the design is frozen, and the methodology sets one out.
+
+## Run it
+
+```
+pip install -r requirements-lock.txt
+python src/run_all.py
+```
+
+This rebuilds every number, figure, the report, the notebook and the slides from the raw data committed here, with no network access. The slides need Node.js. `pytest -q` runs the checks.
+
+## Where to look
+
+- [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md): the method, the results and their limits.
+- [`notebooks/walkthrough.ipynb`](notebooks/walkthrough.ipynb): a short executed walkthrough with charts.
+- [`reports/technical_report.pdf`](reports/technical_report.pdf) and [`reports/presentation.pptx`](reports/presentation.pptx): the report and slides.
+- [`data/processed/forecast_log.csv`](data/processed/forecast_log.csv): all {{n_origins}} forecasts from every model, enough to recompute every score above.
+
+Data: SARB. *MARKET_RATES*. Version 1.0.0. Pretoria: SARB [producer]. Johannesburg: EconData [distributor], 2026. The code is MIT licensed and the data terms differ; see [LICENSE](LICENSE).

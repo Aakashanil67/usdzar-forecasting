@@ -27,7 +27,7 @@ TESTS = json.load(open(PROC / "statistical_tests.json"))
 LOG = pd.read_csv(PROC / "forecast_log.csv", parse_dates=["origin"])
 
 NAVY = "#0E2A3B"      # primary dark
-FOCAL = "#1A7A4A"     # our model, the focal series
+FOCAL = "#1A7A4A"     # the combination, the focal series
 MUTED = "#777777"     # the benchmark and axis furniture
 GREY = "#AEB6BD"
 HIGHLIGHT = "#FFF2CC"
@@ -90,15 +90,13 @@ def rmse_dots():
 
 
 def cumulative():
-    """Exhibit for the mechanism slide, with the build and give-back marked."""
+    """Exhibit for the cumulative-error slide, with the peak and the end marked."""
     cum = ((LOG["AR1_log"] - LOG["realized"]) ** 2
            - (LOG["COMBO"] - LOG["realized"]) ** 2).cumsum()
     t = LOG["origin"]
 
     fig, ax = plt.subplots(figsize=(7.6, 4.3))
     ax.axhspan(0, cum.max() * 1.18, color="#F4F9FD", zorder=0)
-    ax.axvspan(pd.Timestamp("2022-01-01"), pd.Timestamp("2024-01-01"),
-               color="#FFF2CC", alpha=0.75, zorder=0)
     ax.plot(t, cum, color=FOCAL, lw=2.6, zorder=3)
     ax.axhline(0, color="#555555", lw=1.1, zorder=2)
 
@@ -113,12 +111,8 @@ def cumulative():
                 xy=(t.iloc[-1], cum.iloc[-1]), xytext=(-16, -34),
                 textcoords="offset points", fontsize=14.5, color=FOCAL,
                 fontweight="bold", ha="right")
-    ax.annotate("rand trending:\nedge builds here",
-                xy=(pd.Timestamp("2023-01-01"), -0.44), fontsize=13.5,
-                color="#7A5200", ha="center", va="bottom")
-
     ax.set_ylabel("cumulative squared-error\ndifference", fontsize=15)
-    ax.annotate("above zero = our model is ahead of the benchmark",
+    ax.annotate("above zero = the combination is ahead of the AR(1)",
                 (0.015, 0.93), xycoords="axes fraction", fontsize=13.5,
                 color=MUTED, style="italic")
     ax.tick_params(labelsize=14)
@@ -131,14 +125,14 @@ def cumulative():
 
 
 def yearly():
-    """Appendix exhibit: RMSE by year, ours against the benchmark."""
+    """Appendix exhibit: RMSE by year, the combination against the AR(1)."""
     yrs = sorted(MET["_yearly"])
     a = [MET["_yearly"][y]["AR1_log"] for y in yrs]
     c = [MET["_yearly"][y]["COMBO"] for y in yrs]
     x = np.arange(len(yrs))
     fig, ax = plt.subplots(figsize=(8.2, 4.2))
     ax.bar(x - 0.22, a, 0.4, color=MUTED, label="AR(1) benchmark")
-    ax.bar(x + 0.22, c, 0.4, color=FOCAL, label="Combination (ours)")
+    ax.bar(x + 0.22, c, 0.4, color=FOCAL, label="Combination")
     for xx, v in zip(x - 0.22, a):
         ax.annotate(f"{v:.3f}", (xx, v), ha="center", va="bottom", fontsize=10.5,
                     color="#444444", xytext=(0, 3), textcoords="offset points")
@@ -146,16 +140,17 @@ def yearly():
         ax.annotate(f"{v:.3f}", (xx, v), ha="center", va="bottom", fontsize=10.5,
                     fontweight="bold", color=FOCAL, xytext=(0, 3),
                     textcoords="offset points")
-    ax.annotate("2025: rand strengthened back\ntoward the benchmark's mean,\nso its bias finally paid",
-                xy=(4.22, c[4]), xytext=(3.05, 0.28), fontsize=13,
-                color="#7A5200", ha="center",
-                bbox=dict(boxstyle="round,pad=0.35", fc=HIGHLIGHT, ec=EDGE,
-                          lw=1.1),
-                arrowprops=dict(arrowstyle="->", color=EDGE, lw=1.5))
+    for i in [i for i, (x, y) in enumerate(zip(a, c)) if y >= x]:
+        ax.annotate(f"{yrs[i]}: the benchmark is lower", xy=(i - 0.22, a[i] + 0.06),
+                    xytext=(i - 0.9, 0.76), fontsize=13, color="#7A5200",
+                    ha="center",
+                    bbox=dict(boxstyle="round,pad=0.35", fc=HIGHLIGHT, ec=EDGE,
+                              lw=1.1),
+                    arrowprops=dict(arrowstyle="->", color=EDGE, lw=1.5))
     ax.set_xticks(x)
     ax.set_xticklabels(yrs, fontsize=15)
     ax.set_ylabel("RMSE", fontsize=15)
-    ax.set_ylim(0, 0.82)
+    ax.set_ylim(0, 0.95)
     ax.legend(fontsize=13.5, frameon=False, ncol=2, loc="upper left")
     ax.tick_params(axis="y", labelsize=13)
     ax.spines[["top", "right"]].set_visible(False)

@@ -9,6 +9,13 @@ diagnostics.py - What the judged-era forecasts look like, beyond one RMSE.
                        members whose errors move together leave a combination
                        little to work with
   weights              min, max and mean of COMBO's weights, overall and by year
+  ar1_implied_mean     the AR(1) refitted at every origin: persistence, the
+                       level exp(c / (1 - phi)) it is pulled toward, and how
+                       that level compares with the spot rate
+  cumulative_se        running sum of squared-error differences, AR(1) minus
+                       COMBO, by year and at its peak
+  worked_example       every model's forecast, error and COMBO weight at one
+                       origin, with that day's AR(1) fit
 
 Output: data/processed/diagnostics.json
 
@@ -22,6 +29,7 @@ import numpy as np
 import pandas as pd
 
 PROC = Path(__file__).resolve().parents[1] / "data" / "processed"
+WORKED_ORIGIN = "2022-06-03"
 
 MODELS = ["AR1_log", "AR1_level", "AR1_log_roll", "AR1_log_vc", "RW",
           "RW_drift", "CARRY", "RIDGE", "GBM", "EQUAL3", "RW_CARRY",
@@ -33,6 +41,59 @@ COMPONENTS = ["RW", "CARRY", "RIDGE"]
 def weight_stats(w: pd.DataFrame) -> dict:
     return {m: dict(min=float(w[m].min()), max=float(w[m].max()),
                     mean=float(w[m].mean())) for m in w.columns}
+
+
+def ar1_fit(spot: np.ndarray) -> tuple[float, float]:
+    """OLS AR(1) with intercept on the log level: c and phi."""
+    y = np.log(spot)
+    X = np.column_stack([np.ones(len(y) - 1), y[:-1]])
+    c, phi = np.linalg.lstsq(X, y[1:], rcond=None)[0]
+    return float(c), float(phi)
+
+
+def ar1_implied_mean(log: pd.DataFrame, weekly: pd.DataFrame) -> dict:
+    """Refit the AR(1) on spot up to each origin and compare exp(c/(1-phi))
+    with that origin's spot. Same expanding window as run_backtest."""
+    fits = []
+    for t in log.index:
+        c, phi = ar1_fit(weekly.loc[weekly["friday"] <= t, "spot"].dropna().values)
+        fits.append((c, phi, float(np.exp(c / (1 - phi)))))
+    phi = np.array([f[1] for f in fits])
+    mu = np.array([f[2] for f in fits])
+    gap = log["spot"].values - mu
+    return dict(n_origins=len(log), phi_min=float(phi.min()), phi_max=float(phi.max()),
+                mu_min=float(mu.min()), mu_max=float(mu.max()),
+                n_below_spot=int((mu < log["spot"].values).sum()),
+                mean_gap=float(gap.mean()), min_gap=float(gap.min()),
+                spot_first=float(log["spot"].iloc[0]),
+                spot_peak=float(log["spot"].max()))
+
+
+def cumulative_se(log: pd.DataFrame) -> dict:
+    cum = ((log["AR1_log"] - log["realized"]) ** 2
+           - (log["COMBO"] - log["realized"]) ** 2).cumsum()
+    return dict(final=float(cum.iloc[-1]), peak=float(cum.max()),
+                peak_origin=str(cum.idxmax().date()),
+                end_of_year={str(y): float(g.iloc[-1])
+                             for y, g in cum.groupby(cum.index.year)})
+
+
+def worked_example(log: pd.DataFrame, weekly: pd.DataFrame, weights: pd.DataFrame
+                   ) -> dict:
+    t = pd.Timestamp(WORKED_ORIGIN)
+    r = log.loc[t]
+    names = ["RW", "CARRY", "AR1_log", "RIDGE", "GBM", "COMBO"]
+    spot_hist = weekly.loc[weekly["friday"] <= t, "spot"].dropna().values
+    c, phi = ar1_fit(spot_hist)
+    return dict(origin=WORKED_ORIGIN, target_date=str(r["target_date"].date()),
+                spot=float(r["spot"]), realized=float(r["realized"]),
+                carry_diff=float(weekly.loc[weekly["friday"] == t, "carry_diff"].iloc[0]),
+                forecast={m: float(r[m]) for m in names},
+                error={m: float(r[m] - r["realized"]) for m in names},
+                weights={m: float(weights.loc[t, m]) for m in ["RW", "CARRY", "RIDGE"]},
+                ar1=dict(c=c, phi=phi, mu=float(np.exp(c / (1 - phi))),
+                         n_obs=len(spot_hist),
+                         half_life_weeks=float(np.log(0.5) / np.log(phi))))
 
 
 def main() -> None:
@@ -68,6 +129,11 @@ def main() -> None:
     w = w.loc[log.index]
     out["weights"] = dict(overall=weight_stats(w), by_year={
         str(y): weight_stats(g) for y, g in w.groupby(w.index.year)})
+
+    weekly = pd.read_csv(PROC / "weekly.csv", parse_dates=["friday"])
+    out["ar1_implied_mean"] = ar1_implied_mean(log, weekly)
+    out["cumulative_se"] = cumulative_se(log)
+    out["worked_example"] = worked_example(log, weekly, w)
 
     with open(PROC / "diagnostics.json", "w") as fh:
         json.dump(out, fh, indent=2)

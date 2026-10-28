@@ -36,7 +36,7 @@ UA = {"User-Agent": "Mozilla/5.0 (hackathon research script)"}
 
 
 def fetch_sarb(code: str, start: str, end: str = TODAY) -> pd.DataFrame:
-    """Pull a SARB time series in 5-year chunks (robust to server row limits)."""
+    """Pull a SARB time series in 5-year chunks (the server caps rows per request)."""
     frames = []
     s = dt.date.fromisoformat(start)
     stop = dt.date.fromisoformat(end)

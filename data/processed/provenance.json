@@ -1,0 +1,9 @@
+{
+  "econdata_observations": 14173,
+  "econdata_first_date": "1970-01-02",
+  "overlapping_observations": 9141,
+  "max_abs_difference": 0.0,
+  "mismatching_observations": 0,
+  "forecast_window_observations": 1290,
+  "forecast_window_max_abs_difference": 0.0
+}

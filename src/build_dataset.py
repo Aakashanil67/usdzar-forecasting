@@ -98,7 +98,7 @@ def realtime_table(name: str, raw: pd.DataFrame,
     if vint.exists():
         seen = stamp(df["realtime_start"], spec["release_time"], spec["timezone"])
         # rows from the first vintage cover all earlier history, which ALFRED
-        # never saw being published, so only the release rule dates them
+        # has no first-publication date for, so only the release rule dates them
         first = df["realtime_start"] == df["realtime_start"].min()
         released = released.where(first, np.maximum(released, seen))
     return (df.assign(available_at=released + extra_lag)

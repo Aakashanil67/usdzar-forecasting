@@ -2,34 +2,38 @@
 //
 // Structure follows academic presentation discipline (action titles, one
 // exhibit per results slide, annotated findings, references, conclusions last)
-// but keeps a bold visual treatment: dark title and closing slides, large
-// figures, and a single strong accent colour. Judges here are practising
-// econometricians, so the deck aims to look confident rather than decorated.
+// with dark title and closing slides, large figures and a single accent colour.
 //
-// 6 presented slides (~4:40) + references + 7 appendix slides.
+// Every number comes from data/processed/doc_keys.json, which render_docs.py
+// writes from the saved outputs. Text is written with {{key}} placeholders and
+// filled by F(); an unknown key throws.
+//
+// 6 presented slides (~4:40) + references + 8 appendix slides.
 // Run: node make_presentation.js
 const pptxgen = require("pptxgenjs");
 const path = require("path");
 
 const FIG = path.join(__dirname, "..", "figures");
 const SFIG = path.join(FIG, "presentation");
-const MET = require(path.join(__dirname, "..", "data", "processed", "metrics.json"));
-const VAL = require(path.join(__dirname, "..", "data", "processed", "validation_metrics.json"));
+const DK = require(path.join(__dirname, "..", "data", "processed", "doc_keys.json"));
+const K = DK.keys, T = DK.tables;
+
+function F(text) {
+  return text.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+    if (!(key in K)) throw new Error("unknown doc key: " + key);
+    return K[key];
+  });
+}
 
 // three content colours plus neutrals
 const NAVY = "0E2A3B";    // primary / dark slides
-const FOCAL = "1A7A4A";   // our model
+const FOCAL = "1A7A4A";   // the combination
 const AMBER = "C9A227";   // call-outs, key figures
 const INK = "1F2937";
 const MUTED = "6B7280";
 const PALE = "F1F6F3";
 const RULE = "D6DEE6";
-const F = "Arial";
-
-const r4 = (x) => x.toFixed(4);
-const base = MET.AR1_log.rmse, combo = MET.COMBO.rmse;
-const impr = (100 * (1 - combo / base)).toFixed(2);
-const gbmLoss = (100 * (MET.GBM.rmse / base - 1)).toFixed(1);
+const F_ = "Arial";
 
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE";              // 13.333 x 7.5 inches
@@ -47,11 +51,12 @@ function dark() {
 
 /* Action-title slide: complete sentence stating the takeaway, thin rule under. */
 function slide(actionTitle, opts = {}) {
+  const title = F(actionTitle);
   const s = pres.addSlide();
   s.background = { color: "FFFFFF" };
-  const two = actionTitle.length > 58;
-  s.addText(actionTitle, {
-    x: M, y: 0.34, w: W, h: two ? 1.0 : 0.66, fontFace: F, fontSize: 26,
+  const two = title.length > 58;
+  s.addText(title, {
+    x: M, y: 0.34, w: W, h: two ? 1.0 : 0.66, fontFace: F_, fontSize: 26,
     bold: true, color: NAVY, margin: 0, valign: "top",
   });
   const ruleY = two ? 1.36 : 1.06;
@@ -60,43 +65,57 @@ function slide(actionTitle, opts = {}) {
   });
   if (opts.appendix)
     s.addText(opts.appendix, {
-      x: M, y: 0.06, w: W, h: 0.26, fontFace: F, fontSize: 13, italic: true,
+      x: M, y: 0.06, w: W, h: 0.26, fontFace: F_, fontSize: 13, italic: true,
       color: MUTED, margin: 0,
     });
-  s.__bodyY = ruleY + 0.16;
   return s;
 }
 
 function cite(s, txt) {
-  s.addText(txt, { x: M, y: 6.92, w: W, h: 0.3, fontFace: F, fontSize: 13,
+  s.addText(F(txt), { x: M, y: 6.92, w: W, h: 0.3, fontFace: F_, fontSize: 13,
     color: MUTED, margin: 0 });
 }
 
 function sectionHead(s, txt, x, y, w) {
-  s.addText(txt, { x, y, w, h: 0.34, fontFace: F, fontSize: 20, bold: true,
+  s.addText(txt, { x, y, w, h: 0.34, fontFace: F_, fontSize: 20, bold: true,
     color: FOCAL, margin: 0 });
+}
+
+/* Bold lead-in followed by plain text, one paragraph per pair. */
+function leadIns(pairs) {
+  const runs = [];
+  pairs.forEach(([lead, body], i) => {
+    const last = i === pairs.length - 1;
+    if (lead) runs.push({ text: F(lead) + " ", options: { bold: true, breakLine: false } });
+    runs.push({ text: F(body), options: last ? {} : { breakLine: true } });
+  });
+  return runs;
+}
+
+function bullets(lines) {
+  return lines.map((t, i) => ({ text: F(t), options: i < lines.length - 1 ? { breakLine: true } : {} }));
 }
 
 /* ================= 1. TITLE ========================================== */
 {
   const s = dark();
   s.addText("Don't fight the random walk.\nDiscipline it.", {
-    x: 0.9, y: 0.95, w: 11.5, h: 1.8, fontFace: F, fontSize: 42, bold: true,
+    x: 0.9, y: 0.95, w: 11.5, h: 1.8, fontFace: F_, fontSize: 42, bold: true,
     color: "FFFFFF", margin: 0, lineSpacingMultiple: 1.05,
   });
   s.addShape(pres.ShapeType.rect, { x: 0.9, y: 2.95, w: 2.2, h: 0.05,
     fill: { color: AMBER }, line: { color: AMBER } });
-  s.addText("A combination of three simple models forecasts USDZAR one month ahead more accurately than the AR(1) benchmark, over 261 out-of-sample forecasts.",
-    { x: 0.9, y: 3.2, w: 10.9, h: 0.85, fontFace: F, fontSize: 19,
+  s.addText(F("A combination of three simple models scores {{gain_vs_ar1}}% lower RMSE than the AR(1) benchmark over {{n_origins}} out-of-sample forecasts. The gap is not statistically significant, and the combination is level with the random walk."),
+    { x: 0.9, y: 3.2, w: 10.9, h: 0.95, fontFace: F_, fontSize: 19,
       color: "CADCFC", margin: 0 });
 
-  const stats = [[r4(combo), "our RMSE"], [r4(base), "AR(1) benchmark"],
-                 ["+" + impr + "%", "more accurate"], ["261", "logged forecasts"]];
+  const stats = [[K.rmse_combo, "combination RMSE"], [K.rmse_ar1_log, "AR(1) benchmark"],
+                 [K.rmse_rw, "random walk"], ["p = " + K.p_combo_ar1, "against the AR(1)"]];
   stats.forEach((st, i) => {
     const x = 0.9 + i * 3.02;
-    s.addText(st[0], { x, y: 4.35, w: 2.85, h: 0.85, fontFace: F, fontSize: 34,
+    s.addText(st[0], { x, y: 4.35, w: 2.85, h: 0.85, fontFace: F_, fontSize: 34,
       bold: true, color: AMBER, margin: 0 });
-    s.addText(st[1], { x, y: 5.18, w: 2.85, h: 0.36, fontFace: F, fontSize: 14,
+    s.addText(st[1], { x, y: 5.18, w: 2.85, h: 0.36, fontFace: F_, fontSize: 14,
       color: "CADCFC", margin: 0 });
   });
 
@@ -104,55 +123,49 @@ function sectionHead(s, txt, x, y, w) {
     { text: "Team Spurious Decision", options: { bold: true, color: "FFFFFF", breakLine: true } },
     { text: "Aakash Anil and Stefan von der Heyden, Stellenbosch University", options: { color: "9FB3C8", breakLine: true } },
     { text: "SES x Codera Analytics Hackathon, 28 July 2026", options: { color: "9FB3C8" } },
-  ], { x: 0.9, y: 6.05, w: 11, h: 1.0, fontFace: F, fontSize: 14, margin: 0 });
-  s.addNotes("[0:00-0:40] We're team Spurious Decision, and the name is the warning we set ourselves. A spurious relationship looks real in your data and isn't there in the world. In FX forecasting that's the default outcome, so the whole project was built to avoid one. At one month the rand is almost a random walk. We didn't try to out-muscle that. We disciplined it. 0.5600 against the benchmark's 0.5624.");
+  ], { x: 0.9, y: 6.05, w: 11, h: 1.0, fontFace: F_, fontSize: 14, margin: 0 });
+  s.addNotes(F("[0:00-0:40] We're team Spurious Decision, and the name is the warning we set ourselves. A spurious relationship looks real in your data and isn't there in the world. At one month the rand is almost a random walk, so we didn't try to out-muscle it. Our combination scores {{rmse_combo}} against the AR(1)'s {{rmse_ar1_log}} and the random walk's {{rmse_rw}}. That gap is not statistically significant, and we'll say so throughout."));
 }
 
 /* ================= 2. RESEARCH QUESTION ============================== */
 {
-  const s = slide("Can the AR(1) benchmark be beaten out of sample, and can we say why?");
+  const s = slide("Can the AR(1) benchmark be beaten out of sample, and by how much?");
   s.addShape(pres.ShapeType.roundRect, { x: 1.5, y: 1.5, w: 10.3, h: 1.75,
     rectRadius: 0.1, fill: { color: PALE },
     line: { color: FOCAL, pt: 1.5 } });
-  s.addText("Forecast USDZAR 1 month ahead, every Friday, 1 Jan 2021 to 31 Dec 2025.\nBeat an AR(1) on RMSE, out of sample, and explain the mechanism.",
-    { x: 1.75, y: 1.68, w: 9.8, h: 1.4, fontFace: F, fontSize: 21,
+  s.addText("Forecast USDZAR 1 month ahead, every Friday, 1 Jan 2021 to 31 Dec 2025.\nCompare RMSE with an AR(1), out of sample, and say how far the result can be trusted.",
+    { x: 1.75, y: 1.68, w: 9.8, h: 1.4, fontFace: F_, fontSize: 21,
       color: NAVY, align: "center", valign: "middle", margin: 0 });
 
-  s.addText([
-    { text: "Why it is hard. ", options: { bold: true, breakLine: false } },
-    { text: "Since Meese and Rogoff (1983), structural FX models lose to a no-change forecast at this horizon. Honest published gains run 1 to 5% (Rossi 2013).", options: { breakLine: true } },
-    { text: "Our answer. ", options: { bold: true, breakLine: false } },
-    { text: "Yes, by 0.42%, and the mechanism is a measurable bias in the benchmark itself.", options: {} },
-  ], { x: M, y: 3.6, w: W, h: 2.0, fontFace: F, fontSize: 20, color: INK,
+  s.addText(leadIns([
+    ["Why it is hard.", "Since Meese and Rogoff (1983), structural FX models lose to a no-change forecast at this horizon. Rossi (2013) finds that success depends on the sample, predictor, horizon and benchmark."],
+    ["Our answer.", "A gain of {{gain_vs_ar1}}% in RMSE over the AR(1) that is not statistically established, and no gain over the random walk."],
+  ]), { x: M, y: 3.6, w: W, h: 2.4, fontFace: F_, fontSize: 20, color: INK,
     bullet: true, paraSpaceAfter: 16, margin: 0 });
   cite(s, "Meese & Rogoff (1983), J. Int. Econ.; Rossi (2013), J. Econ. Lit. Full references on the references slide.");
-  s.addNotes("[0:40-1:20] The question. Forecast the rand a month ahead, every Friday, five years, beat an AR(1) on RMSE out of sample. Why it's hard: since Meese and Rogoff in 1983, structural FX models lose to a simple no-change forecast at this horizon, and honest published gains are one to five per cent. Our answer is yes, by 0.42 per cent, and we can name the mechanism.");
+  s.addNotes(F("[0:40-1:20] The question. Forecast the rand a month ahead, every Friday, five years, and compare RMSE with an AR(1) out of sample. It is hard because since Meese and Rogoff in 1983 structural models lose to a no-change forecast at this horizon. Our answer is a small gain over the AR(1), {{gain_vs_ar1}} per cent, that we cannot distinguish from noise, and no gain over the random walk."));
 }
 
 /* ================= 3. METHOD + RIGOUR ================================ */
 {
-  const s = slide("Three simple models combined by recent accuracy, with every setting frozen before we saw the judged window");
+  const s = slide("Three simple models combined by recent accuracy, with settings chosen on 2015 to 2020, before the judged window");
   sectionHead(s, "The model", M, 1.55, 5.6);
-  s.addText([
-    { text: "Random walk. ", options: { bold: true, breakLine: false } },
-    { text: "No change. The anchor.", options: { breakLine: true } },
-    { text: "Carry. ", options: { bold: true, breakLine: false } },
-    { text: "Tilt by the JIBAR minus US T-bill gap.", options: { breakLine: true } },
-    { text: "Ridge. ", options: { bold: true, breakLine: false } },
-    { text: "Gold, platinum, dollar, VIX. Heavily shrunk.", options: { breakLine: true } },
-    { text: "Weights. ", options: { bold: true, breakLine: false } },
-    { text: "Inverse recent out-of-sample error.", options: {} },
-  ], { x: M, y: 1.98, w: 5.7, h: 3.0, fontFace: F, fontSize: 20, color: INK,
+  s.addText(leadIns([
+    ["Random walk.", "No change. The anchor."],
+    ["Carry.", "Tilt by the JIBAR minus US T-bill gap."],
+    ["Ridge.", "Commodity, dollar and risk predictors. Heavily shrunk."],
+    ["Weights.", "Inverse recent out-of-sample error."],
+  ]), { x: M, y: 1.98, w: 5.7, h: 3.0, fontFace: F_, fontSize: 20, color: INK,
     bullet: true, paraSpaceAfter: 13, margin: 0 });
 
-  sectionHead(s, "Why the numbers hold", 6.9, 1.55, 5.8);
-  s.addText([
-    { text: "Inputs dated on or before each Friday.", options: { breakLine: true } },
-    { text: "Training only on already-resolved outcomes.", options: { breakLine: true } },
-    { text: "Weights embargoed by 28 days.", options: { breakLine: true } },
-    { text: "All settings frozen on 2015 to 2020.", options: { breakLine: true } },
-    { text: "All 261 forecasts logged. Audit any one.", options: {} },
-  ], { x: 6.9, y: 1.98, w: 5.8, h: 3.0, fontFace: F, fontSize: 20, color: INK,
+  sectionHead(s, "How the test is protected", 6.9, 1.55, 5.8);
+  s.addText(bullets([
+    "Inputs public by Friday 17:00 Johannesburg.",
+    "Training only on already-resolved outcomes.",
+    "Purged cross-validation, scaler inside folds.",
+    "Weights use only resolved errors.",
+    "All {{n_origins}} forecasts logged. Audit any one.",
+  ]), { x: 6.9, y: 1.98, w: 5.8, h: 3.0, fontFace: F_, fontSize: 20, color: INK,
     bullet: true, paraSpaceAfter: 13, margin: 0 });
 
   s.addShape(pres.ShapeType.roundRect, { x: M, y: 5.25, w: 12.1, h: 1.15,
@@ -160,83 +173,84 @@ function sectionHead(s, txt, x, y, w) {
   s.addText([
     { text: "Nothing here is a black box. ", options: { bold: true, color: "FFFFFF" } },
     { text: "OLS, ridge regression and a weighted average. We can derive every component by hand under questioning.", options: { color: "CADCFC" } },
-  ], { x: 0.95, y: 5.42, w: 11.5, h: 0.85, fontFace: F, fontSize: 18,
+  ], { x: 0.95, y: 5.42, w: 11.5, h: 0.85, fontFace: F_, fontSize: 18,
     valign: "middle", margin: 0 });
   cite(s, "Data: SARB EXCX135 via EconData (MARKET_RATES 1.0.0); JIBAR, SARB; US T-bill, VIX, dollar index, Brent, FRED; platinum, NYMEX.");
-  s.addNotes("[1:20-2:15] Three simple pieces. A random walk anchor. A carry tilt from the interest gap. A heavily regularised regression on gold, platinum, the dollar and the VIX. Combined by inverse recent error, so weight moves to whatever is working. On the right is why the numbers hold: information sets, resolved-only training, embargoed weights, settings frozen on 2015 to 2020 before we touched the judged window, and every forecast logged. Nothing here is a black box.");
+  s.addNotes(F("[1:20-2:15] Three simple pieces. A random walk anchor. A carry tilt from the interest gap. A heavily regularised regression on commodity, dollar and risk predictors. Combined by inverse recent error. On the right is how the test is protected: every input joined on when it was public, training only on resolved outcomes, purged cross-validation, weights from resolved errors, and every forecast logged. The ridge variant, decay and sharpness were chosen on {{val_n}} validation origins from {{val_first}} to {{val_last}}. Those scores were used for selection, so they are not independent evidence."));
 }
 
-/* ================= 4. RESULT 1: the mechanism ======================== */
+/* ================= 4. RESULT 1: cumulative error ===================== */
 {
-  const s = slide("The AR(1)'s implied long-run mean sat below the market at all 261 origins");
+  const s = slide("The combination gained on the AR(1) until {{cum_peak_date}}, then gave most of it back");
   s.addImage({ path: path.join(SFIG, "cumse.png"), x: M, y: 1.5,
     w: 7.6, h: 4.3 });
 
   sectionHead(s, "What to take away", 8.5, 1.55, 4.3);
-  s.addText([
-    { text: "Persistence 0.997 to 0.999, just below one, so each forecast is pulled toward c/(1-phi).", options: { breakLine: true } },
-    { text: "That mean ranged R11.80 to R19.18 and sat BELOW spot at 261 of 261 origins, by R2.11 on average.", options: { breakLine: true } },
-    { text: "A downward lean against a rand that rose from R14.62 to R19.74.", options: {} },
-  ], { x: 8.5, y: 2.0, w: 4.3, h: 3.2, fontFace: F, fontSize: 18, color: INK,
+  s.addText(bullets([
+    "Cumulative squared-error gain peaked at {{cum_peak}} and ended at {{cum_final}}.",
+    "The AR(1)'s implied long-run level sat below spot at {{n_below_spot}} of {{n_origins}} origins, by R{{mean_gap}} on average, and it never forecast a rise.",
+    "Squared bias is {{bias_share_of_gap_pct}}% of its excess squared error. The rest is variance.",
+  ]), { x: 8.5, y: 2.0, w: 4.3, h: 3.2, fontFace: F_, fontSize: 17, color: INK,
     bullet: true, paraSpaceAfter: 14, margin: 0 });
 
   s.addShape(pres.ShapeType.roundRect, { x: 8.5, y: 5.15, w: 4.3, h: 1.35,
     rectRadius: 0.08, fill: { color: "FFF2CC" }, line: { color: "E6C800", pt: 1 } });
   s.addText([
-    { text: "R2.11", options: { bold: true, fontSize: 30, color: "7A5200", breakLine: true } },
-    { text: "average gap, below spot at every origin", options: { fontSize: 14, color: "7A5200" } },
-  ], { x: 8.65, y: 5.28, w: 4.0, h: 1.1, fontFace: F, align: "center",
+    { text: "R" + K.mean_gap, options: { bold: true, fontSize: 30, color: "7A5200", breakLine: true } },
+    { text: "average gap, implied level below spot", options: { fontSize: 14, color: "7A5200" } },
+  ], { x: 8.65, y: 5.28, w: 4.0, h: 1.1, fontFace: F_, align: "center",
     valign: "middle", margin: 0 });
-  cite(s, "Own calculation. AR(1) refitted at each of the 261 origins; reproducible via src/validate_results.py in the submission.");
-  s.addNotes("[2:15-3:15] Why is the benchmark beatable? Its persistence is just below one, so every forecast is pulled toward an implied long-run mean. We computed that mean at all 261 origins. It sat below the actual spot rate at every single one, by 2.11 rand on average. So it leaned downward for five years against a currency going up. The chart is cumulative squared error: above zero we're ahead. The edge builds through the 2022-23 trend, peaks at 1.29, and gives some back. I'd rather show you that than crop it at the peak.");
+  cite(s, "Own calculation from forecast_log.csv. The downward lean is an observation, not shown to be the full explanation.");
+  s.addNotes(F("[2:15-3:15] The chart is the cumulative squared-error difference against the AR(1); above zero the combination is ahead. It peaked at {{cum_peak}} on {{cum_peak_date}} and finished at {{cum_final}}, so most of the gain was given back. Separately, the AR(1) is pulled towards a long-run level that sat below spot at every origin, by R{{mean_gap}} on average, and it never forecast a rise. Squared bias accounts for {{bias_share_of_gap_pct}} per cent of its excess squared error against the combination. That is an observation. We have not shown it is the whole explanation."));
 }
 
 /* ================= 5. RESULT 2: accuracy ============================= */
 {
-  const s = slide("The combination cuts RMSE 0.42% below the benchmark; four of five models beat it");
+  const s = slide("The combination's RMSE is {{gain_vs_ar1}}% below the AR(1)'s and level with the random walk's");
   s.addImage({ path: path.join(SFIG, "rmse.png"), x: M, y: 1.45,
     w: 7.6, h: 4.75 });
 
   sectionHead(s, "What to take away", 8.35, 1.5, 4.5);
-  s.addText([
-    { text: "Combination 0.5600 against the AR(1)'s 0.5624, over 261 forecasts.", options: { breakLine: true } },
-    { text: "Robustness: with targets strictly inside 2025 we lead every model, random walk included.", options: { breakLine: true } },
-    { text: "Gradient boosting, same data and discipline, loses by " + gbmLoss + "%. About 850 noisy observations cannot support a flexible learner.", options: {} },
-  ], { x: 8.35, y: 1.95, w: 4.5, h: 4.2, fontFace: F, fontSize: 18, color: INK,
-    bullet: true, paraSpaceAfter: 16, margin: 0 });
-  cite(s, "Own calculation from forecast_log.csv, n = 261. Simple-beats-complex is the M4 and M5 competition finding (Makridakis et al. 2020, 2022).");
-  s.addNotes("[3:15-4:10] The numbers. Benchmark 0.5624, our combination 0.5600, about 0.42 per cent better. Carry and ridge also beat it, so four of five did. Note the axis starts at 0.50 so the differences are visible, I'd rather say that than have you spot it. Two things. On the robustness cut with targets strictly inside 2025 we lead every model including the random walk. And the one model that loses badly is the gradient booster, by seven and a half per cent, same data, same discipline. That's the M4 and M5 finding and we built it into the design.");
+  s.addText(bullets([
+    "Combination {{rmse_combo}}, AR(1) {{rmse_ar1_log}}, random walk {{rmse_rw}}, over {{n_origins}} forecasts.",
+    "Both prespecified intervals include zero: p = {{p_combo_ar1}} against the AR(1), {{p_combo_rw}} against the random walk.",
+    "Equal weights score {{rmse_equal3}}, so adaptive weighting adds nothing measurable.",
+    "Gradient boosting scores {{rmse_gbm}}, the highest of {{n_models}} models. This specification only.",
+  ]), { x: 8.35, y: 1.95, w: 4.5, h: 4.4, fontFace: F_, fontSize: 17, color: INK,
+    bullet: true, paraSpaceAfter: 14, margin: 0 });
+  cite(s, "Own calculation from forecast_log.csv, n = {{n_origins}}. Intervals: Newey-West, lag 3. None of {{n_exploratory}} exploratory comparisons survives Holm adjustment.");
+  s.addNotes(F("[3:15-4:10] The chart shows each model's RMSE difference from the random walk on the left and from the AR(1) on the right, with 95 per cent intervals. Green is the two comparisons we fixed in advance. The combination is {{gain_vs_ar1}} per cent below the AR(1) but the interval includes zero, and against the random walk it is level. An equal-weight average of the same three scores {{rmse_equal3}}. Gradient boosting scores {{rmse_gbm}}, the highest of the {{n_models}} models, and that covers this specification only."));
 }
 
 /* ================= 6. CONCLUSIONS (stays up during Q&A) ============== */
 {
   const s = dark();
-  s.addText("Conclusions", { x: M, y: 0.4, w: W, h: 0.5, fontFace: F,
+  s.addText("Conclusions", { x: M, y: 0.4, w: W, h: 0.5, fontFace: F_,
     fontSize: 20, color: "A0BBDD", margin: 0 });
   s.addShape(pres.ShapeType.rect, { x: M, y: 0.95, w: W, h: 0.05,
     fill: { color: AMBER }, line: { color: AMBER } });
 
-  s.addText([
-    { text: "1.  The benchmark is beatable, and we can say why. ", options: { bold: true, color: "FFFFFF", breakLine: false } },
-    { text: "Its implied long-run mean sat below spot at all 261 origins, by R2.11 on average.", options: { color: "CADCFC", breakLine: true } },
-    { text: "2.  The gain is real but small. ", options: { bold: true, color: "FFFFFF", breakLine: false } },
-    { text: "0.42% in RMSE, holding in four of five years and on the strict robustness cut. That is the size of the true signal at one month.", options: { color: "CADCFC", breakLine: true } },
-    { text: "3.  Discipline beat complexity. ", options: { bold: true, color: "FFFFFF", breakLine: false } },
-    { text: "Gradient boosting, run under identical rules, lost by " + gbmLoss + "%.", options: { color: "CADCFC", breakLine: true } },
-    { text: "4.  What we do not claim. ", options: { bold: true, color: "FFFFFF", breakLine: false } },
-    { text: "Not statistically significant (DM p = " + MET.COMBO.dm_vs_ar1[1].toFixed(2) + "). The benchmark wins on MAE and in 2025. Untested as a trading strategy.", options: { color: "CADCFC" } },
-  ], { x: M, y: 1.25, w: W, h: 4.5, fontFace: F, fontSize: 19,
+  const item = (n, lead, body, last) => [
+    { text: n + ".  " + F(lead) + " ", options: { bold: true, color: "FFFFFF", breakLine: false } },
+    { text: F(body), options: Object.assign({ color: "CADCFC" }, last ? {} : { breakLine: true }) },
+  ];
+  s.addText([].concat(
+    item(1, "A small gain over the AR(1).", "{{gain_vs_ar1}}% lower RMSE, not statistically established (p = {{p_combo_ar1}}). Level with the random walk (p = {{p_combo_rw}}).", false),
+    item(2, "Adaptive weighting adds nothing measurable.", "Equal weights score {{rmse_equal3}}. The weights stayed between {{w_min}} and {{w_max}}.", false),
+    item(3, "The AR(1) leans downward.", "Its implied level was below spot at {{n_below_spot}} of {{n_origins}} origins. That is an observation, not shown to be the full explanation.", false),
+    item(4, "What we do not claim.", "Significance, directional skill (the combination's {{combo_dir_acc_pct}}% accuracy equals the share of rises), or profitability. All 2021 to 2025 results are exploratory.", true),
+  ), { x: M, y: 1.25, w: W, h: 4.7, fontFace: F_, fontSize: 19,
     paraSpaceAfter: 17, margin: 0 });
 
   s.addShape(pres.ShapeType.rect, { x: M, y: 6.15, w: W, h: 0.02,
     fill: { color: "2A4A5E" }, line: { color: "2A4A5E" } });
   s.addText("Full code, forecast log and report in the submission. Reproduces end to end with one command.",
-    { x: M, y: 6.3, w: 8.6, h: 0.4, fontFace: F, fontSize: 15,
+    { x: M, y: 6.3, w: 8.6, h: 0.4, fontFace: F_, fontSize: 15,
       color: "A0BBDD", margin: 0 });
   s.addText("Questions and feedback welcome.", { x: 9.4, y: 6.3, w: 3.3, h: 0.4,
-    fontFace: F, fontSize: 15, color: AMBER, bold: true, align: "right",
+    fontFace: F_, fontSize: 15, color: AMBER, bold: true, align: "right",
     margin: 0 });
-  s.addNotes("[4:10-4:40] So, four things. The benchmark is beatable and we can say why. The gain is real but small, which is the size of the true signal here. Discipline beat complexity. And what we won't claim: it isn't statistically significant, p is 0.47, the benchmark wins on MAE and in 2025, and we never tested it as a trading strategy. Happy to walk through the code line by line. Are there questions or feedback?  --- LEAVE THIS SLIDE UP FOR Q&A ---");
+  s.addNotes(F("[4:10-4:40] Four things. A small gain over the AR(1) that is not statistically established, p {{p_combo_ar1}}, and level with the random walk. Adaptive weighting adds nothing measurable. The AR(1) leans downward, which we report as an observation. And what we won't claim: significance, directional skill, or profitability, and every 2021 to 2025 result is exploratory. Happy to walk through the code line by line. Are there questions or feedback?  --- LEAVE THIS SLIDE UP FOR Q&A ---"));
 }
 
 /* ================= 7. REFERENCES ===================================== */
@@ -244,19 +258,18 @@ function sectionHead(s, txt, x, y, w) {
   const s = slide("References");
   const refs = [
     "Amat, C., Michalski, T. and Stoltz, G. (2018). Fundamentals and exchange rate forecastability with simple machine learning methods. Journal of International Money and Finance, 88, 1-24.",
-    "Codera Analytics (2024-25). What drives the rand?; USDZAR Forecasts. codera.co.za.",
     "Darvas, Z. (2020). Forecasting exchange rates of major currencies with long maturity interest rates. Bruegel Working Paper 2020/02.",
     "Diebold, F.X. and Mariano, R.S. (1995). Comparing predictive accuracy. Journal of Business and Economic Statistics, 13(3), 253-263.",
-    "Makridakis, S., Spiliotis, E. and Assimakopoulos, V. (2020, 2022). The M4 and M5 accuracy competitions: results, findings and conclusions. International Journal of Forecasting.",
+    "Makridakis, S., Spiliotis, E. and Assimakopoulos, V. (2022). M5 accuracy competition: results, findings, and conclusions. International Journal of Forecasting.",
     "Meese, R. and Rogoff, K. (1983). Empirical exchange rate models of the seventies: do they fit out of sample? Journal of International Economics, 14, 3-24.",
     "Rossi, B. (2013). Exchange rate predictability. Journal of Economic Literature, 51(4), 1063-1119.",
     "South African Reserve Bank (2022). Working Paper WP/22/14: can the distribution of rand returns improve exchange rate forecasts?",
   ];
-  s.addText(refs.flatMap((r, i) => [{ text: r, options: { breakLine: true } }]),
-    { x: M, y: 1.3, w: W, h: 5.2, fontFace: F, fontSize: 14, color: INK,
+  s.addText(refs.map((r) => ({ text: r, options: { breakLine: true } })),
+    { x: M, y: 1.3, w: W, h: 5.2, fontFace: F_, fontSize: 14, color: INK,
       paraSpaceAfter: 9, margin: 0 });
   s.addText("Data: SARB series EXCX135 via EconData (MARKET_RATES 1.0.0, EXCX135.B.A). SARB. MARKET_RATES. Pretoria: SARB [producer]. Johannesburg: EconData [distributor], 2026.",
-    { x: M, y: 6.6, w: W, h: 0.5, fontFace: F, fontSize: 13, color: MUTED,
+    { x: M, y: 6.6, w: W, h: 0.5, fontFace: F_, fontSize: 13, color: MUTED,
       margin: 0 });
   s.addNotes("Not presented. Here so every source cited on a slide has a full reference.");
 }
@@ -265,48 +278,36 @@ function sectionHead(s, txt, x, y, w) {
 function appx(letter, title) {
   return slide(title, { appendix: "Appendix " + letter });
 }
+const hdr = (t) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { color: NAVY } } });
 
 {
-  const s = appx("A", "Full results for every model on every metric");
-  const hdr = (t) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { color: NAVY } } });
-  const rows = [[hdr("Model"), hdr("RMSE"), hdr("MAE"), hdr("Dir."), hdr("vs AR(1)"), hdr("DM p"), hdr("Targets <=2025")]];
-  const nice = { AR1_log: "AR(1) log (baseline)", AR1_level: "AR(1) level", RW: "Random walk", CARRY: "Carry", RIDGE: "Ridge", GBM: "Gradient boosting", COMBO: "Combination (ours)" };
-  for (const k of ["AR1_log", "AR1_level", "RW", "CARRY", "RIDGE", "GBM", "COMBO"]) {
-    const m = MET[k];
-    rows.push([
-      { text: nice[k], options: k === "COMBO" ? { bold: true } : {} },
-      r4(m.rmse), r4(m.mae),
-      k === "RW" ? "n/a" : (100 * m.dir_acc).toFixed(1) + "%",
-      k === "AR1_log" ? "-" : ((100 * (1 - m.rmse / base) >= 0 ? "+" : "") + (100 * (1 - m.rmse / base)).toFixed(2) + "%"),
-      m.dm_vs_ar1 ? m.dm_vs_ar1[1].toFixed(3) : "-",
-      r4(MET._targets_within_window[k]),
-    ]);
-  }
-  s.addTable(rows, { x: M, y: 1.35, w: W, colW: [2.9, 1.5, 1.5, 1.2, 1.5, 1.2, 2.3],
-    fontFace: F, fontSize: 13, color: INK, valign: "middle",
-    border: { pt: 0.5, color: RULE }, rowH: 0.5, margin: 0.06, align: "center" });
-  cite(s, "Own calculation from forecast_log.csv, n = 261. DM = Diebold-Mariano against the AR(1), Newey-West variance at lag 3.");
-  s.addNotes("Use for any numeric question: MAE, directional accuracy, DM p-values, robustness cut.");
+  const s = appx("A", "Full results for every model: the leaders differ by {{rmse_spread_rw_family}} in RMSE");
+  const rows = [T.results[0].map(hdr)];
+  T.results.slice(1).forEach((r) => {
+    const bold = r[0] === "Combination";
+    rows.push(r.map((c, i) => (bold ? { text: c, options: { bold: true } } : (i === 0 ? c : c))));
+  });
+  s.addTable(rows, { x: M, y: 1.5, w: W, colW: [4.3, 1.4, 1.4, 2.0, 1.1, 1.9],
+    fontFace: F_, fontSize: 12, color: INK, valign: "middle",
+    border: { pt: 0.5, color: RULE }, rowH: 0.34, margin: 0.05, align: "center" });
+  cite(s, "Own calculation from forecast_log.csv, n = {{n_origins}}. RMSE below AR(1) is positive when a model beats the benchmark. Only the first row and the two prespecified comparisons were fixed in advance.");
+  s.addNotes(F("Use for any numeric question: MAE, rank, share of origins at which each model forecast a rise. The AR(1) variants, drift, equal-weight average and adaptive pairs are exploratory."));
 }
 {
-  const s = appx("B", "We win four years of five; 2025 goes the other way and we say so");
-  s.addImage({ path: path.join(SFIG, "yearly.png"), x: 2.4, y: 1.4,
+  const s = appx("B", "The combination is below the AR(1) in {{years_ahead_n}} of {{years_n}} years; {{years_behind}} goes the other way");
+  s.addImage({ path: path.join(SFIG, "yearly.png"), x: 2.4, y: 1.5,
     w: 8.5, h: 4.7 });
-  cite(s, "Own calculation from forecast_log.csv.");
-  s.addNotes("2025 goes against us because the rand strengthened back toward the AR(1)'s mean, so its bias finally helped. That is regime dependence, and it is the argument for combining rather than picking one model.");
+  cite(s, "Own calculation from forecast_log.csv. Five annual figures cannot show whether the pattern is stable. We have not tested why {{years_behind}} differs.");
+  s.addNotes(F("The AR(1) scored {{behind_ar1}} in {{behind_year}} against {{behind_combo}} for the combination and {{behind_rw}} for the random walk. We have not tested a reason."));
 }
 {
-  const s = appx("C", "The target series is the one the rules specify, verified against an independent source");
-  s.addText([
-    { text: "Source. ", options: { bold: true, breakLine: false } },
-    { text: "Official EconData export, MARKET_RATES 1.0.0, series EXCX135.B.A, 14 173 daily observations from 2 January 1970.", options: { breakLine: true } },
-    { text: "Verification. ", options: { bold: true, breakLine: false } },
-    { text: "Checked value by value against the SARB Web API (EXCX135D): 9 141 overlapping observations, maximum difference 0.000000, zero mismatches.", options: { breakLine: true } },
-    { text: "Consequence. ", options: { bold: true, breakLine: false } },
-    { text: "Backtests run off either source give RMSEs identical to twelve decimal places.", options: { breakLine: true } },
-    { text: "Predictors. ", options: { bold: true, breakLine: false } },
-    { text: "All daily market prices. Never revised, no publication lag, so look-ahead bias is impossible by construction rather than merely avoided.", options: {} },
-  ], { x: M, y: 1.5, w: 6.6, h: 4.8, fontFace: F, fontSize: 18, color: INK,
+  const s = appx("C", "The target is verified against an independent source, and predictors join on publication time");
+  s.addText(leadIns([
+    ["Source.", "Official EconData export, MARKET_RATES 1.0.0, series EXCX135.B.A, {{econdata_n}} daily observations from {{econdata_first}}."],
+    ["Verification.", "Compared value by value with the SARB Web API (EXCX135D): {{overlap_n}} overlapping observations, largest difference {{overlap_max_diff}}, {{overlap_mismatches}} mismatches."],
+    ["Predictors.", "Daily market series joined on when each value became public, with the vintage then current for revised series. Rules and sources are in series_metadata.json."],
+    ["Timing check.", "With every non-spot predictor a week later the combination moves from {{timing_combo_base}} to {{timing_combo_extra}}."],
+  ]), { x: M, y: 1.5, w: 6.6, h: 4.8, fontFace: F_, fontSize: 17, color: INK,
     bullet: true, paraSpaceAfter: 15, margin: 0 });
   s.addImage({ path: path.join(FIG, "input_series.png"), x: 7.5, y: 1.4,
     w: 5.3, h: 5.15 });
@@ -314,69 +315,93 @@ function appx(letter, title) {
   s.addNotes("Use for any data or look-ahead-bias question.");
 }
 {
-  const s = appx("D", "The random walk's role as anchor was learned from performance, not imposed");
+  const s = appx("D", "Adaptive weights stayed between {{w_min}} and {{w_max}}, close to equal weighting");
   s.addImage({ path: path.join(FIG, "combination_weights.png"), x: M, y: 1.5,
     w: 7.6, h: 3.38 });
-  s.addText([
-    { text: "Frozen on the 2015 to 2020 validation era:", options: { bold: true, breakLine: true } },
-    { text: "ridge on the " + (VAL.chosen_config.ridge.startsWith("RIDGE_f") ? "full" : "compact")
-      + " feature set, " + (VAL.chosen_config.ridge.endsWith("0") ? "no" : "with") + " intercept",
-      options: { breakLine: true } },
-    { text: "decay " + VAL.chosen_config.delta + " on past errors", options: { breakLine: true } },
-    { text: "sharpness " + VAL.chosen_config.theta, options: { breakLine: true } },
-    { text: "window of 156 resolved origins", options: {} },
-  ], { x: 8.5, y: 1.6, w: 4.3, h: 3.2, fontFace: F, fontSize: 17, color: INK,
-    bullet: true, paraSpaceAfter: 10, margin: 0 });
-  s.addText("When carry earned its way in during 2022 and 2023, weight moved to it. When nothing worked in 2024 and 2025, weight collapsed back to the anchor. A fixed no-change rule cannot do that.",
-    { x: M, y: 5.2, w: 12.1, h: 0.9, fontFace: F, fontSize: 18, color: INK,
+  s.addText([{ text: F("Chosen on {{val_first}} to {{val_last}}:"),
+               options: { bold: true, breakLine: true } }].concat(bullets([
+    "ridge on {{chosen_ridge_desc}}",
+    "decay {{chosen_delta}} on past errors",
+    "sharpness {{chosen_theta}}",
+    "window of 156 resolved origins",
+  ])), { x: 8.5, y: 1.6, w: 4.3, h: 3.2, fontFace: F_, fontSize: 17, color: INK,
+      bullet: true, paraSpaceAfter: 10, margin: 0 });
+  s.addText(F("The three components' errors are almost the same series (correlation up to {{max_err_corr}}), so inverse-error weights barely move off one third each. An equal-weight average scores {{rmse_equal3}} against {{rmse_combo}} for the adaptive combination."),
+    { x: M, y: 5.2, w: 12.1, h: 1.2, fontFace: F_, fontSize: 18, color: INK,
       margin: 0 });
-  cite(s, "Own calculation. Full validation grid in validation_metrics.json.");
-  s.addNotes("Use for: how does the combination adapt, and how do we know settings were frozen.");
+  cite(s, "Own calculation. Full validation grid in validation_metrics.json; those scores were used for selection.");
+  s.addNotes("Use for: how does the combination adapt, and how do we know settings were frozen before the judged window.");
 }
 {
-  const s = appx("E", "We ran machine learning under identical rules and it lost by " + gbmLoss + "%");
+  const s = appx("E", "Gradient boosting scored {{rmse_gbm}}, the highest of {{n_models}} models, for this specification");
   s.addShape(pres.ShapeType.roundRect, { x: M, y: 1.55, w: 5.9, h: 4.4,
     rectRadius: 0.1, fill: { color: PALE }, line: { color: RULE } });
   sectionHead(s, "What we ran", 0.95, 1.8, 5.2);
-  s.addText("HistGradientBoosting with a fixed seed. Once a year, purged cross-validation picks its depth, learning rate, iterations, L2 penalty and leaf size from " + VAL.gbm.grid.length + " configurations. Same information set, same embargo and same walk-forward loop as every other model.",
-    { x: 0.95, y: 2.3, w: 5.2, h: 3.4, fontFace: F, fontSize: 18, color: INK,
+  s.addText(F("HistGradientBoosting with a fixed seed. Every {{gbm_retune_every}} weeks, purged cross-validation picks its depth, learning rate, iterations, L2 penalty and leaf size from {{gbm_grid_n}} configurations. Same information set, same embargo and same walk-forward loop as every other model."),
+    { x: 0.95, y: 2.3, w: 5.2, h: 3.4, fontFace: F_, fontSize: 18, color: INK,
       margin: 0, valign: "top" });
   s.addShape(pres.ShapeType.roundRect, { x: 6.85, y: 1.55, w: 5.9, h: 4.4,
     rectRadius: 0.1, fill: { color: PALE }, line: { color: RULE } });
-  sectionHead(s, "Why it lost", 7.2, 1.8, 5.2);
-  s.addText("About 850 weekly observations, heavily overlapping, with a tiny signal. A learner that can represent thresholds and interactions finds plenty of both, but those patterns belong to that stretch of history rather than to the currency, so they do not repeat out of sample.",
-    { x: 7.2, y: 2.3, w: 5.2, h: 3.4, fontFace: F, fontSize: 18, color: INK,
+  sectionHead(s, "What we can say", 7.2, 1.8, 5.2);
+  s.addText(F("It is {{gbm_worse_than_ar1_pct}}% above the AR(1) and {{gbm_worse_than_rw_pct}}% above the random walk, and neither difference is significant (p = {{gbm_p_vs_ar1}}, {{gbm_p_vs_rw}}). With every predictor a week later its RMSE moves from {{timing_gbm_base}} to {{timing_gbm_extra}}. We have not diagnosed why it does worse, and the result covers this feature set, grid and sample only."),
+    { x: 7.2, y: 2.3, w: 5.2, h: 3.4, fontFace: F_, fontSize: 18, color: INK,
       margin: 0, valign: "top" });
-  cite(s, "Makridakis, Spiliotis and Assimakopoulos (2020, 2022) report the same conclusion across thousands of series.");
-  s.addNotes("Use for: why didn't you use machine learning, deep learning, or an LSTM. We did, honestly, and here is the number.");
+  cite(s, "The M5 accuracy results paper (Makridakis, Spiliotis and Assimakopoulos, 2022) reports that the top methods were ML methods, mostly LightGBM, and that combinations helped.");
+  s.addNotes("Use for: why didn't you use machine learning. We did, with a small tuned grid, and it scored worst here. That says nothing general about machine learning: the M5 results paper reports the top methods there were ML methods, mostly LightGBM, and that combinations helped.");
 }
 {
-  const s = appx("F", "Forecasts track the realised series closely and lag it slightly, as a near-random walk should");
+  const s = appx("F", "Forecasts stay close to the current rate and lag the realised series");
   s.addImage({ path: path.join(FIG, "forecasts_vs_actual.png"), x: 1.3, y: 1.45,
     w: 10.7, h: 5.03 });
   cite(s, "Own calculation. Forecasts plotted at their target dates against EXCX135.");
   s.addNotes("Use if a judge asks to see the forecasts themselves.");
 }
 {
-  const s = appx("G", "One forecast in full: on 3 June 2022 the AR(1) was the worst of the sensible models");
-  const hdr = (t) => ({ text: t, options: { bold: true, color: "FFFFFF", fill: { color: NAVY } } });
-  s.addTable([
-    [hdr("Model"), hdr("Forecast"), hdr("How it got there"), hdr("Error")],
-    ["Random walk", "15.4117", "today's rate, unchanged", "-0.9365"],
-    ["Carry", "15.4557", "15.4117 x (1 + 0.0372 x 28/365)", "-0.8925"],
-    ["AR(1)", "15.3861", "iterated 4 steps toward its implied mean, R13.01 that day", "-0.9621"],
-    ["Ridge", "15.4089", "small tilt away from spot", "-0.9393"],
-    [{ text: "Combination", options: { bold: true } }, { text: "15.4256", options: { bold: true } },
-     "0.333 x RW + 0.337 x Carry + 0.331 x Ridge", { text: "-0.9226", options: { bold: true } }],
-  ], { x: M, y: 1.5, w: W, colW: [2.4, 1.9, 5.6, 2.2], fontFace: F,
+  const s = appx("G", "One forecast in full: {{ex_origin}}");
+  const how = {
+    "Random walk": "today's rate, unchanged",
+    "Carry": F("{{ex_spot}} x (1 + {{ex_carry_diff}} x 28/365)"),
+    "AR(1), log level (benchmark)": F("iterated 4 steps towards its long-run level, R{{ex_ar1_mu}} that day"),
+    "Ridge": "small tilt away from spot",
+    "Gradient boosting": "boosted trees on the same predictors",
+    "Combination": F("{{ex_w_rw}} x RW + {{ex_w_carry}} x Carry + {{ex_w_ridge}} x Ridge"),
+  };
+  const rows = [[hdr("Model"), hdr("Forecast"), hdr("How it got there"), hdr("Error")]];
+  T.worked.slice(1).forEach((r) => {
+    const b = r[0] === "Combination";
+    const o = b ? { bold: true } : {};
+    rows.push([{ text: r[0], options: o }, { text: r[1], options: o }, how[r[0]], { text: r[2], options: o }]);
+  });
+  s.addTable(rows, { x: M, y: 1.5, w: W, colW: [3.2, 1.7, 5.2, 2.0], fontFace: F_,
     fontSize: 14, color: INK, valign: "middle",
-    border: { pt: 0.5, color: RULE }, rowH: 0.55, margin: 0.06 });
-  s.addText("Origin Friday 3 June 2022, spot R15.4117. Target 1 July 2022, actual R16.3482. Every model was too low that month. The AR(1) was worst because its implied mean that day was R13.01, and that pull dragged its forecast down exactly when the rand was heading up.",
-    { x: M, y: 5.0, w: W, h: 1.2, fontFace: F, fontSize: 18, color: INK,
+    border: { pt: 0.5, color: RULE }, rowH: 0.5, margin: 0.06 });
+  s.addText(F("Origin {{ex_origin}}, spot R{{ex_spot}}. Target {{ex_target}}, actual R{{ex_realized}}. {{ex_all_too_low}}. The forecasts span {{ex_spread_cents}} cents against an actual move of {{ex_move_cents}} cents."),
+    { x: M, y: 5.3, w: W, h: 1.2, fontFace: F_, fontSize: 18, color: INK,
       margin: 0 });
-  cite(s, "Own calculation from forecast_log.csv and combo_weights.csv.");
+  cite(s, "Own calculation from forecast_log.csv and combo_weights.csv. Rows sorted by forecast.");
   s.addNotes("Use if asked what the model actually does. It is the whole project in one month.");
+}
+{
+  const s = appx("H", "All 2021 to 2025 results are exploratory; a prospective test needs forecasts made after the design is frozen");
+  const rows = [[hdr("RMSE cut"), hdr("Origins needed vs AR(1)"), hdr("Origins needed vs RW")]];
+  T.plan_ar1.slice(1).forEach((r, i) => rows.push([r[0], r[1], T.plan_rw[i + 1][1]]));
+  s.addTable(rows, { x: M, y: 1.65, w: 5.9, colW: [1.4, 2.4, 2.1], fontFace: F_,
+    fontSize: 15, color: INK, valign: "middle", align: "center",
+    border: { pt: 0.5, color: RULE }, rowH: 0.5, margin: 0.06 });
+  s.addText(F("Two-sided 5% test, 80% power, with the loss differential's spread and the benchmark's MSE held at their 2021 to 2025 values. Against the random walk the counts are small only because the combination and the random walk are nearly the same forecast, so a 1 to 5% cut between them is implausible. Effect sizes are round numbers fixed in advance. The table says nothing about any other forecaster."),
+    { x: M, y: 4.3, w: 5.9, h: 2.4, fontFace: F_, fontSize: 14, color: INK, margin: 0 });
+  sectionHead(s, "Protocol", 7.0, 1.55, 5.6);
+  s.addText(bullets([
+    "Freeze the commit, the chosen configuration and the data snapshot before the first new origin.",
+    "Prespecify two tests: combination against the AR(1) and against the random walk.",
+    "Fix the sample size and stop date from the planning table.",
+    "Score each origin once, in a log that is only appended to.",
+    "Report the result whatever it is.",
+  ]), { x: 7.0, y: 2.0, w: 5.7, h: 4.4, fontFace: F_, fontSize: 17, color: INK,
+    bullet: true, paraSpaceAfter: 12, margin: 0 });
+  cite(s, "Details in docs/METHODOLOGY.md, section 13.");
+  s.addNotes("Use for: how would you test this properly. The 2021 to 2025 window was scored repeatedly during development, so a clean test needs new origins.");
 }
 
 pres.writeFile({ fileName: path.join(__dirname, "..", "reports", "presentation.pptx") })
-  .then(() => console.log("reports/presentation.pptx written: 6 presented + references + 7 appendix"));
+  .then(() => console.log("reports/presentation.pptx written: 6 presented + references + 8 appendix"));
