@@ -20,6 +20,8 @@
   "ci_combo_ar1_lo": "-0.0099",
   "ci_combo_rw_hi": "+0.0029",
   "ci_combo_rw_lo": "-0.0030",
+  "ci_pct_better_ar1": "1.6",
+  "ci_pct_worse_ar1": "0.7",
   "combo_bias": "-0.0055",
   "combo_bias_share_pct": "0.01",
   "combo_dir_acc_pct": "46.4",

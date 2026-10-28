@@ -248,6 +248,10 @@ def build_keys():
            if c["role"] == "exploratory"}
     lo, hi = by[("COMBO", "RW")]["rmse_difference_ci95"]
     k["rmse_ci_half_rw"] = f((hi - lo) / 2, 4)
+    # The same interval against the AR(1), in per cent of its RMSE, for the README.
+    lo, hi = by[("COMBO", "AR1_log")]["rmse_difference_ci95"]
+    k["ci_pct_better_ar1"] = f(-100 * lo / met["AR1_log"]["rmse"], 1)
+    k["ci_pct_worse_ar1"] = f(100 * hi / met["AR1_log"]["rmse"], 1)
     k["n_exploratory"] = str(tests["exploratory_family_size"])
     assert len(fam) == tests["exploratory_family_size"]
     k["n_exploratory_unadjusted"] = str(sum(c["by_lag"]["3"]["p"] < 0.05
